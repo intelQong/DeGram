@@ -12,8 +12,15 @@ on:
 
 jobs:
   build-linux-portable:
-    name: Package Linux Portable (x86_64)
-    runs-on: ubuntu-24.04
+    name: Package Linux Portable (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,12 +41,12 @@ jobs:
             chmod +x out/Release/DeGram
           fi
           chmod +x scripts/build_portable.sh
-          ./scripts/build_portable.sh "7.0.16" "x86_64" "out/Release/DeGram" "."
+          ./scripts/build_portable.sh "7.0.17" "${{ matrix.arch }}" "out/Release/DeGram" "."
 
       - name: Upload Linux Portable Artifact (.tar.xz)
         uses: actions/upload-artifact@v4
         with:
-          name: DeGram-Portable-Linux-x86_64.tar.xz
+          name: DeGram-Portable-Linux-${{ matrix.arch }}.tar.xz
           path: |
             DeGram-Portable-*.tar.xz
             DeGram-Portable-*.tar.xz.sha256

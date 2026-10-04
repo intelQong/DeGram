@@ -8,8 +8,15 @@ on:
 
 jobs:
   build-linux-portable:
-    name: Build Linux Portable
-    runs-on: ubuntu-24.04
+    name: Build Linux Portable (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,7 +31,7 @@ jobs:
       - name: Build Linux Portable Package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          [ -z "$VERSION" ] && VERSION="7.0.16"
+          [ -z "$VERSION" ] && VERSION="7.0.17"
           mkdir -p out/Release
           if [ ! -f out/Release/DeGram ] && [ ! -f out/Release/Telegram ]; then
             echo '#!/bin/sh' > out/Release/DeGram
@@ -32,12 +39,12 @@ jobs:
             chmod +x out/Release/DeGram
           fi
           chmod +x scripts/build_portable.sh
-          ./scripts/build_portable.sh "$VERSION" "x86_64" "out/Release/DeGram" "."
+          ./scripts/build_portable.sh "$VERSION" "${{ matrix.arch }}" "out/Release/DeGram" "."
 
       - name: Upload Linux Portable Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-portable
+          name: linux-portable-${{ matrix.arch }}
           path: |
             DeGram-Portable-*.tar.xz
             DeGram-Portable-*.tar.xz.sha256
@@ -55,7 +62,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ github.ref_name }}".TrimStart('v')
-          if ([string]::IsNullOrEmpty($ver)) { $ver = "7.0.16" }
+          if ([string]::IsNullOrEmpty($ver)) { $ver = "7.0.17" }
           ./scripts/build_portable_windows.ps1 -Version $ver -OutputDir "."
 
       - name: Upload Windows Portable Artifact
@@ -78,7 +85,7 @@ jobs:
       - name: Create macOS Portable Package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          [ -z "$VERSION" ] && VERSION="7.0.16"
+          [ -z "$VERSION" ] && VERSION="7.0.17"
           chmod +x scripts/build_portable_macos.sh
           ./scripts/build_portable_macos.sh "$VERSION" "out/Release/DeGram.app" "."
 
