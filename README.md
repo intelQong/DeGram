@@ -3,215 +3,216 @@
 <img src=".github/art/degram.svg" alt="DeGram Desktop" width="128" height="128">
 
 # DeGram Desktop
-### Enterprise-Grade, Privacy-First, Cross-Platform Portable Telegram Client
+**A portable, privacy-focused Telegram Desktop fork that puts you back in control.**
 
-[![Version](https://img.shields.io/badge/version-7.0.20-6c5ce7?style=flat-square&logo=git)](https://github.com/intelQong/DeGram/releases)
+[![Release](https://img.shields.io/badge/release-v7.0.21-6c5ce7?style=flat-square&logo=github)](https://github.com/intelQong/DeGram/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20(x86__64%20%7C%20ARM64)%20%7C%20Windows%20%7C%20macOS-informational?style=flat-square)](#-portable-deployment-matrix)
-[![Language](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white)](#-build-infrastructure)
-[![Telemetry](https://img.shields.io/badge/telemetry-0%25%20(Air--Gapped)-success?style=flat-square)](#-enterprise-security--threat-model)
-[![CI/CD](https://img.shields.io/badge/build-GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/intelQong/DeGram/actions)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-informational?style=flat-square)](#-grab-the-portable-binaries)
+[![Built With](https://img.shields.io/badge/C%2B%2B-20%20%2F%20Qt%206-00599C?style=flat-square&logo=cplusplus&logoColor=white)](#-building-from-source)
+[![Telemetry](https://img.shields.io/badge/telemetry-none%20(air--gapped)-success?style=flat-square)](#-zero-telemetry)
 
-[English](README.md) · [Русский](README-RU.md) · [Download Packages](#-portable-deployment-matrix) · [Security Architecture](#-security-architecture) · [Features](#-core-capabilities) · [Build Infrastructure](#-build-infrastructure) · [Governance](#-licensing--governance)
+[English](README.md) · [Русский](README-RU.md) · [Download](#-grab-the-portable-binaries) · [Features](#-what-degram-does) · [How It Works](#-under-the-hood) · [Build](#-building-from-source) · [Architecture](docs/ARCHITECTURE.md)
 
 </div>
 
 ---
 
-## 🏛️ Executive Summary
+## ⚡ Why DeGram?
 
-**DeGram Desktop** is an enterprise-hardened, self-contained, and completely portable fork of Telegram Desktop engineered for professionals, researchers, privacy advocates, and organizations operating under heightened threat models. 
+Official Telegram Desktop is great, but it has a few frustrating defaults: anyone can retract messages from your chat history without asking, forwarding restrictions block you from saving public reference material, telemetry runs in the background, and sensitive session data gets scattered all over your OS registry and user folders.
 
-By default, conventional messaging clients grant remote servers and counter-parties absolute control over your local data: messages can be retroactively retracted or altered without your consent, forensic footprints remain scattered across operating system registries and app caches, and telemetry data is transmitted continuously.
+**DeGram** is a clean, fully portable fork of Telegram Desktop that fixes these pain points without getting in your way:
 
-DeGram solves this by introducing **Client-Side Sovereignty**:
-1. **Immutable Local Record-Keeping**: Deleted and modified communications are permanently preserved in an encrypted, local SQLite vault with cryptographic timestamping.
-2. **Duress Zeroization (KABOOM Protocol)**: Plausible deniability and instant panic wipe capabilities destroy all session keys and databases within milliseconds upon trigger.
-3. **100% Host-Isolated Portability**: Zero system registry modifications, zero persistent traces outside the application's local container directory, and native execution from external drives across Linux (x86_64 & ARM64), Windows, and macOS.
-4. **Air-Gapped Telemetry**: Complete removal of analytics, metric reporting, and third-party error collection endpoints.
-
----
-
-## 🛡️ Core Capabilities
-
-### 🗄️ Immutable Anti-Recall & Audit Trail
-* **Cryptographic Retention**: Messages deleted or redacted by remote contacts, channels, or administrators are intercepted at the MTProto layer and permanently archived into a local SQLite database (`ayudata.db`).
-* **Visual Audit Interface**: Deleted messages remain visible with a distinct indicator (`🧹`), and edited messages maintain a complete revision history accessible on-demand.
-* **Granular Retention Policies**: Configure retention thresholds per chat, group, channel, or globally.
-
-### 💥 Duress & Panic Zeroization ("KABOOM")
-* **Plausible Deniability Passcode**: Entering a pre-configured duress PIN on the lock screen immediately triggers an ungraceful, recursive zeroization of all session tokens, authorization keys, local message caches, and SQLite stores before force-terminating the application process (`std::_Exit(0)`).
-* **Anti-Brute Force Trigger**: Exceeding 10 failed passcode attempts automatically executes the KABOOM wipe protocol, neutralizing physical forensic extraction attacks.
-* **Instant Abort ("Kill the App")**: A dedicated emergency exit action is embedded directly in the main drawer menu to immediately terminate the process without leaving lingering worker threads in memory.
-
-### 👁️ Complete Ghost Protocol & Traffic Stealth
-* **Read Receipt Suppression**: Read messages in direct chats, groups, and channels without broadcasting read markers (`ReadHistory`) to the server or sender.
-* **Presence & Typing Obfuscation**: Suppress online presence updates and typing/recording status beacons (`sendUploadProgress`, `sendOnlinePackets`).
-* **Story Stealth Mode**: View ephemeral user stories completely incognito without registering view receipts.
-* **Local Read Toggle**: Mark chats as read locally for organizational sanity while keeping server-side read status unacknowledged.
-
-### 🔓 Restriction & DRM Neutralization
-* **Anti-Copy Bypass**: Seamlessly save media, copy text, and forward messages from channels and chats with `noforwards`, `restrict_saving_content`, or protected content flags enabled.
-* **TTL Media Persistence**: Self-destructing and view-once media items remain permanently accessible until explicitly closed by the user.
-
-### 🏢 Enterprise Operations & Multi-Tenancy
-* **100 Concurrent Accounts**: Support for up to 100 simultaneous, fully isolated accounts within a single runtime instance with immediate hot-switching.
-* **Streamer & Presentation Mode**: Automatically hides sensitive phone numbers, peer IDs, and incoming message previews during screen sharing, webinars, or video conferences.
-* **Sponsorship & Ad Filtering**: Native stripping of server-injected sponsored messages and advertisements before UI layout computation.
+* **Saves deleted & edited messages locally** in a fast SQLite database with edit history and timestamps.
+* **Emergency panic wipe (KABOOM)** that completely shreds your local session keys and databases if a duress passcode is entered.
+* **Ghost mode** that lets you read chats and view stories without broadcasting read receipts, typing status, or online beacons.
+* **Bypasses copy & save restrictions** so you can forward or download media from restricted channels and keep view-once (TTL) media from disappearing.
+* **100% portable out-of-the-box**: runs straight from a USB thumb drive or encrypted container on Linux, Windows, and macOS with zero registry writes or leftover files.
+* **Zero telemetry**: no Sentry crash reporting, no analytics pingbacks, no third-party data tracking.
 
 ---
 
-## 🔬 Security Architecture
+## 🚀 What DeGram Does
 
-DeGram Desktop operates as an intelligent mediator situated between the network MTProto transport boundary and the Qt rendering engine:
+### 🛡️ Anti-Recall: Never Lose a Message
+When someone deletes or edits a message in a private chat or group, Telegram servers push an `updateDeleteMessages` or `updateEditMessage` event. DeGram intercepts this at the MTProto layer:
+* **Deleted messages** stay right in your chat feed, marked with a discrete `🧹` icon so you know it was retracted.
+* **Edits** keep a full chronological log—click any edited message to inspect previous revisions and timestamps.
+* Everything is stored locally in an embedded SQLite database (`ayudata.db`) running in high-performance WAL mode.
+
+### 💣 Duress Code & Panic Wipe (KABOOM)
+If you're ever forced to unlock your client under pressure, DeGram gives you real plausible deniability:
+* **Custom Duress PIN**: Configure a secondary PIN on your lock screen. Entering it immediately invokes a recursive cryptographic shred of all session tokens, authorization keys, and databases in `tdata/`, followed by an instant `std::_Exit(0)`.
+* **Anti-Brute Force**: 10 failed passcode attempts on the lock screen triggers the exact same KABOOM wipe automatically.
+* **"Kill the App" button**: Placed directly in the main drawer menu for an instant, ungraceful kill that bypasses standard exit hooks and leaves zero memory dumps.
+
+### 👻 Ghost Protocol: Total Stealth
+Full granular control over what the server and your contacts can see:
+* **Don't Send Read Receipts**: Read incoming messages in private chats, groups, and channels without sending `messages.readHistory`.
+* **Hide Online Presence**: Suppress online presence pings so your account appears permanently offline or as "last seen recently".
+* **Mute Typing Telemetry**: Drops `messages.setTyping` actions so nobody knows when you're typing, recording voice, or uploading files.
+* **Anonymous Stories**: Watch user stories incognito without showing up in their viewer list.
+* **Local Read Toggle**: Mark a chat read on your screen to clear notification badges without syncing the read status back to the server.
+
+### 🔓 Restriction & DRM Bypasses
+* **Save Protected Media**: Client-side override on channels and chats with `noforwards` or `restrict_saving_content` enabled. Download videos, save voice notes, and copy text freely.
+* **View-Once / TTL Persistence**: One-time self-destructing photos and videos won't disappear on a timer—they stay available until you explicitly close them.
+
+### 🧰 Everyday Quality of Life
+* **Up to 100 Accounts**: We raised the account limit from Telegram's 3 (or Premium's 6) up to **100 concurrent accounts** with instantaneous hot-switching.
+* **No Sponsored Ads**: Ad injection payloads in public channels are stripped before UI layout calculation.
+* **Streamer Mode**: Automatically masks phone numbers, usernames, and incoming notification contents when screen sharing or recording.
+* **Single Clean Blue Icon**: No cluttered icon theme pickers—just the classic, recognizable Telegram paper-plane icon across all platforms.
+
+---
+
+## 🛠️ Under the Hood
+
+Here is how DeGram sits between Telegram's MTProto transport and your screen:
 
 ```mermaid
 flowchart TD
-    subgraph Remote["☁️ Telegram Network Layer"]
-        API["MTProto Protocol Transport"]
-        PUSH["Server Push & Update Stream"]
+    subgraph Telegram["☁️ Telegram Servers"]
+        API["MTProto API & Update Stream"]
     end
 
-    subgraph Boundary["🛡️ DeGram Client Security Boundary"]
+    subgraph DeGram["🛡️ DeGram Client Engine"]
         direction TB
 
-        subgraph Inbound["Inbound Verification & Filtering"]
+        subgraph Inbound["Inbound Pipeline"]
             direction TB
-            AR["Anti-Recall Interceptor\n(Catches updateDeleteMessages)"]
-            DRM["Restriction Neutralizer\n(Bypasses noforwards & TTL)"]
-            AD["Sponsorship Stripper\n(Purges sponsored ads)"]
+            AR["Anti-Recall Interceptor\n(catches updateDeleteMessages)"]
+            DRM["Restriction Bypass\n(overrides noforwards & TTL)"]
+            AD["Ad Filter\n(drops sponsored messages)"]
         end
 
-        subgraph Storage["Encrypted Isolated Vault"]
+        subgraph Outbound["Outbound Pipeline"]
             direction TB
-            SQL[("SQLite Audit Store\n(ayudata.db - WAL Mode)")]
-            KEYS[("Session & Auth Keys\n(tdata / DeGramForcePortable)")]
+            GM["Ghost Mode\n(drops read receipts & typing)"]
         end
 
-        subgraph Outbound["Outbound Stealth Gateway"]
+        subgraph Storage["Local Vault (Isolated)"]
             direction TB
-            GHOST["Ghost Protocol Engine\n(Drops read receipts, typing, presence)"]
+            SQL[("SQLite DB (ayudata.db)\n(saved deletes & edit logs)")]
+            KEYS[("Session Storage\n(tdata / DeGramForcePortable)")]
         end
 
-        subgraph Protocol["Emergency Zeroization Unit"]
+        subgraph Safety["Panic Protocols"]
             direction TB
-            KABOOM{"KABOOM Protocol\n(Duress PIN / 10 Bad Tries)"}
-            WIPE["Recursive Memory & Disk Zeroization\n(Immediate std::_Exit)"]
+            DURESS{"Duress PIN or\n10 Bad Attempts?"}
+            KABOOM["Instant Wipe & Process Kill\n(std::_Exit)"]
         end
     end
 
-    subgraph User["🖥️ Local Workspace Interface"]
-        UI["Chat & Audit View\n(Single Default Icon Branding)"]
-        LOCK["Duress-Aware Lock Screen"]
+    subgraph User["👤 User Interface"]
+        CHAT["Chat View"]
+        LOCK["Lock Screen"]
     end
 
-    PUSH --> AR
-    API --> AR
-    AR -- "Capture deleted / edited state" --> SQL
-    AR --> DRM --> AD --> UI
+    API -- "Updates & Messages" --> AR
+    AR -- "Save deleted/edited payload" --> SQL
+    AR --> DRM --> AD --> CHAT
 
-    UI -- "Outbound interaction" --> GHOST
-    GHOST -- "Sterilized updates only" --> API
+    CHAT -- "Outbound actions" --> GM
+    GM -- "Cleaned packets (no read/typing)" --> API
 
-    LOCK -- "Duress PIN / Anti-Brute Force" --> KABOOM
-    KABOOM --> WIPE
-    WIPE -.->|"Recursive Unlink"| SQL
-    WIPE -.->|"Zeroize Keys"| KEYS
+    LOCK -- "Duress code entered" --> DURESS
+    DURESS --> KABOOM
+    KABOOM -.->|"Recursive shred"| KEYS
+    KABOOM -.->|"Delete database"| SQL
 ```
 
 ---
 
-## 📦 Portable Deployment Matrix
+## 📦 Grab the Portable Binaries
 
-DeGram Desktop is distributed as zero-dependency portable bundles across all major desktop platforms. No system administration (`sudo`/administrator) privileges, registry modifications, or external package managers are required.
+DeGram is packaged as 100% portable, standalone archives. No installer, no background updater services, and no root/admin permissions needed. Everything stays neatly inside its local folder (`DeGramForcePortable` or `tdata`).
 
-| Platform | Architecture | Target Bundle | Package Size | Signature |
+| OS | Architecture | Package | Size | Checksum |
 | :--- | :--- | :--- | :--- | :--- |
-| **Linux** | `x86_64` (AMD64) | [`DeGram-Portable-7.0.20-x86_64.tar.xz`](https://github.com/intelQong/DeGram/releases) | ~96 MB | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **Linux** | `aarch64` (ARM64) | [`DeGram-Portable-7.0.20-arm64.tar.xz`](https://github.com/intelQong/DeGram/releases) | ~69 MB | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **Windows** | `x86_64` (64-bit) | [`DeGram-Portable-7.0.20-Windows-x64.zip`](https://github.com/intelQong/DeGram/releases) | Portable Archive | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **macOS** | Universal (`arm64` / `x86_64`) | [`DeGram-Portable-7.0.20-macOS.zip`](https://github.com/intelQong/DeGram/releases) | Self-Contained `.app` | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Linux** | `x86_64` (AMD64) | [**DeGram-Portable-7.0.21-x86_64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~96 MB | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Linux** | `aarch64` (ARM64) | [**DeGram-Portable-7.0.21-arm64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~69 MB | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Windows** | `x86_64` (64-bit) | [**DeGram-Portable-7.0.21-Windows-x64.zip**](https://github.com/intelQong/DeGram/releases) | Standalone `.zip` | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **macOS** | Universal (`arm64` + `x86_64`) | [**DeGram-Portable-7.0.21-macOS.zip**](https://github.com/intelQong/DeGram/releases) | Standalone `.app` | [SHA256](https://github.com/intelQong/DeGram/releases) |
 
-### Verification & Launch Instructions
+### Quick Start
 
 #### 🐧 Linux (x86_64 & ARM64)
 ```bash
-# 1. Download and verify integrity
-sha256sum -c DeGram-Portable-7.0.20-x86_64.tar.xz.sha256
+# 1. Download and verify SHA-256
+sha256sum -c DeGram-Portable-7.0.21-x86_64.tar.xz.sha256
 
-# 2. Extract into portable workspace or USB drive
-tar -xf DeGram-Portable-7.0.20-x86_64.tar.xz
+# 2. Extract anywhere (home directory, /opt, or a USB stick)
+tar -xf DeGram-Portable-7.0.21-x86_64.tar.xz
 cd DeGram/
 
-# 3. Launch with local directory isolation
+# 3. Run with local profile isolation
 ./DeGram.sh
 ```
 
 #### 🪟 Windows (x64)
-1. Extract `DeGram-Portable-7.0.20-Windows-x64.zip` to your desired destination (e.g. encrypted BitLocker USB or local directory).
-2. Execute `DeGram.exe`. All credentials, cache files, and databases are strictly maintained inside the local `DeGramForcePortable\` folder.
+1. Unzip `DeGram-Portable-7.0.21-Windows-x64.zip` into any folder or USB drive.
+2. Double-click `DeGram.exe`. Your sessions, chats, and anti-recall database are saved in the local `DeGramForcePortable\` folder right next to the executable.
 
 #### 🍏 macOS (Apple Silicon & Intel)
-1. Extract `DeGram-Portable-7.0.20-macOS.zip`.
-2. Move `DeGram.app` to any directory or external drive.
-3. If Gatekeeper quarantine flags are present on unsigned runs:
+1. Unzip `DeGram-Portable-7.0.21-macOS.zip`.
+2. Move `DeGram.app` to your Applications folder or external drive.
+3. If macOS Gatekeeper complains about unsigned binaries on first launch:
    ```bash
    xattr -cr DeGram.app
    ```
-4. Double-click `DeGram.app` to launch.
+4. Open `DeGram.app`.
 
 ---
 
-## 📂 Subsystem Implementation Reference
+## 🔍 Codebase Map
 
-The following table documents the core subsystems, architectural roles, and implementation paths within the codebase:
+Want to see where the magic happens? Here are the main touchpoints:
 
-| Subsystem | Architectural Function | Key Source Files |
+| Feature | What it does | Key Files |
 | :--- | :--- | :--- |
-| **Anti-Recall Core** | Intercepts `updateDeleteMessages` & `updateEditMessage`, persists records to SQLite | [`ayu/data/`](Telegram/SourceFiles/ayu/), [`history.cpp`](Telegram/SourceFiles/history/history.cpp) |
-| **KABOOM Protocol** | Duress PIN evaluation, 10-fail counter, recursive shredding & immediate termination | [`window_lock_widgets.cpp`](Telegram/SourceFiles/window/window_lock_widgets.cpp), [`ayu_settings.cpp`](Telegram/SourceFiles/ayu/ayu_settings.cpp) |
-| **Ghost Protocol** | Client-side suppression of read, online, and typing MTProto RPC packets | [`data_send_action_manager.cpp`](Telegram/SourceFiles/data/data_send_action_manager.cpp), [`apiwrap.cpp`](Telegram/SourceFiles/apiwrap.cpp) |
-| **Emergency Abort** | Immediate ungraceful exit from drawer menu (`Kill the App`) | [`window_main_menu.cpp`](Telegram/SourceFiles/window/window_main_menu.cpp) |
-| **Portable Detection** | Evaluates `-workdir`, `DeGramForcePortable`, or local `portable` sentinel | [`core/launcher.cpp`](Telegram/SourceFiles/core/launcher.cpp) |
-| **Restriction Bypass** | Enforces `allowsForwarding() == true` across channel, chat, and user entities | [`data_channel.cpp`](Telegram/SourceFiles/data/data_channel.cpp), [`data_chat.cpp`](Telegram/SourceFiles/data/data_chat.cpp) |
-| **Branding Isolation** | Enforces single official blue paper-plane icon across all platforms | [`ayu_logo.h`](Telegram/SourceFiles/ayu/ui/ayu_logo.h), [`icon_picker.cpp`](Telegram/SourceFiles/ayu/ui/components/icon_picker.cpp) |
+| **Anti-Recall Core** | Hooks message deletions & edits, dumps records to SQLite | [`ayu/data/`](Telegram/SourceFiles/ayu/), [`history.cpp`](Telegram/SourceFiles/history/history.cpp) |
+| **KABOOM Panic Protocol** | Checks duress PIN, counts failed attempts, recursive wipe & `_Exit(0)` | [`window_lock_widgets.cpp`](Telegram/SourceFiles/window/window_lock_widgets.cpp), [`ayu_settings.cpp`](Telegram/SourceFiles/ayu/ayu_settings.cpp) |
+| **Ghost Protocol** | Drops outbound read receipts, typing telemetry, and presence beacons | [`data_send_action_manager.cpp`](Telegram/SourceFiles/data/data_send_action_manager.cpp), [`apiwrap.cpp`](Telegram/SourceFiles/apiwrap.cpp) |
+| **Emergency Kill App** | Ungraceful instant exit button in the main menu | [`window_main_menu.cpp`](Telegram/SourceFiles/window/window_main_menu.cpp) |
+| **Portable Engine** | Detects local working directory, loads `DeGramForcePortable` | [`core/launcher.cpp`](Telegram/SourceFiles/core/launcher.cpp) |
+| **Restriction Bypass** | Forces `allowsForwarding() == true` on channels, chats, and media | [`data_channel.cpp`](Telegram/SourceFiles/data/data_channel.cpp), [`data_chat.cpp`](Telegram/SourceFiles/data/data_chat.cpp) |
+| **Branding** | Enforces clean DeGram strings and classic blue icon | [`ayu_logo.h`](Telegram/SourceFiles/ayu/ui/ayu_logo.h), [`icon_picker.cpp`](Telegram/SourceFiles/ayu/ui/components/icon_picker.cpp) |
 
 ---
 
-## 🛠️ Build Infrastructure
+## 🔨 Building from Source
 
-DeGram Desktop utilizes **C++20**, **Qt 6**, and **CMake**.
+DeGram uses **C++20**, **Qt 6**, and **CMake**.
 
-### Debug Build (Recommended for Development)
+### Debug Build (Fastest for testing)
 ```bash
-# Configure and build Debug target
 cmake --build out --config Debug --target Telegram
 ```
 
-### Reproducible Docker Linux Build Environment
+### Official Docker Environment (Linux)
+To reproduce the clean, isolated Linux build environment:
 ```bash
-# Official isolated CentOS/Rocky Linux Docker build entry point
 Telegram/build/docker/centos_env/build_debug.sh
 ```
 
-### Automated Release Packaging Scripts
+### Packaging Scripts
 ```bash
-# Linux Portable Package (.tar.xz)
-./scripts/build_portable.sh "7.0.20" "x86_64" "out/Release/DeGram" "."
+# Linux portable .tar.xz
+./scripts/build_portable.sh "7.0.21" "x86_64" "out/Release/DeGram" "."
 
-# Windows Portable Package (.zip)
-./scripts/build_portable_windows.ps1 -Version "7.0.20" -OutputDir "."
+# Windows portable .zip (PowerShell)
+./scripts/build_portable_windows.ps1 -Version "7.0.21" -OutputDir "."
 
-# macOS Universal Bundle (.zip)
-./scripts/build_portable_macos.sh "7.0.20" "out/Release/DeGram.app" "."
+# macOS portable .zip
+./scripts/build_portable_macos.sh "7.0.21" "out/Release/DeGram.app" "."
 ```
 
 ---
 
-## ⚖️ Licensing & Governance
+## 📜 License & Acknowledgments
 
-DeGram Desktop is open-source software licensed under the **[GNU General Public License v3.0 or later](LICENSE)** with the official **[OpenSSL Exception](LICENSE.EXCEPTION)**.
+DeGram Desktop is open-source under the **[GNU General Public License v3.0](LICENSE)** with the **[OpenSSL Exception](LICENSE.EXCEPTION)**.
 
-* **Upstream Lineage**: Built upon the open-source foundations of [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) and [Desktop App Toolkit](https://github.com/desktop-app).
-* **Security & Vulnerability Disclosure**: To report security-sensitive vulnerabilities, please open a private security advisory on GitHub or contact the maintainers directly.
-* **Disclaimer**: DeGram Desktop is an independent client-side software project. It is not affiliated with, sponsored by, or endorsed by Telegram FZ-LLC. All product names, logos, and brands are property of their respective owners.
+* Built on top of the battle-tested [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) codebase and [Desktop App Toolkit](https://github.com/desktop-app).
+* **Disclaimer**: DeGram Desktop is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Telegram FZ-LLC.
