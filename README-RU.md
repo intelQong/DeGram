@@ -5,7 +5,7 @@
 # DeGram Desktop
 **Портативный Telegram Desktop форк с акцентом на приватность, который возвращает контроль в ваши руки.**
 
-[![Release](https://img.shields.io/badge/release-v7.0.21-6c5ce7?style=flat-square&logo=github)](https://github.com/intelQong/DeGram/releases)
+[![Release](https://img.shields.io/badge/release-v7.0.22-6c5ce7?style=flat-square&logo=github)](https://github.com/intelQong/DeGram/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-informational?style=flat-square)](#-скачать-портативные-бинарники)
 [![Built With](https://img.shields.io/badge/C%2B%2B-20%20%2F%20Qt%206-00599C?style=flat-square&logo=cplusplus&logoColor=white)](#-сборка-из-исходников)
@@ -130,20 +130,20 @@ DeGram поставляется как 100% портативные автоно�
 
 | ОС | Архитектура | Пакет | Размер | Хеш |
 | :--- | :--- | :--- | :--- | :--- |
-| **Linux** | `x86_64` (AMD64) | [**DeGram-Portable-7.0.21-x86_64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~96 МБ | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **Linux** | `aarch64` (ARM64) | [**DeGram-Portable-7.0.21-arm64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~69 МБ | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **Windows** | `x86_64` (64-бит) | [**DeGram-Portable-7.0.21-Windows-x64.zip**](https://github.com/intelQong/DeGram/releases) | Автономный `.zip` | [SHA256](https://github.com/intelQong/DeGram/releases) |
-| **macOS** | Universal (`arm64` + `x86_64`) | [**DeGram-Portable-7.0.21-macOS.zip**](https://github.com/intelQong/DeGram/releases) | Автономный `.app` | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Linux** | `x86_64` (AMD64) | [**DeGram-Portable-7.0.22-x86_64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~96 МБ | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Linux** | `aarch64` (ARM64) | [**DeGram-Portable-7.0.22-arm64.tar.xz**](https://github.com/intelQong/DeGram/releases) | ~69 МБ | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **Windows** | `x86_64` (64-бит) | [**DeGram-Portable-7.0.22-Windows-x64.zip**](https://github.com/intelQong/DeGram/releases) | Автономный `.zip` | [SHA256](https://github.com/intelQong/DeGram/releases) |
+| **macOS** | Universal (`arm64` + `x86_64`) | [**DeGram-Portable-7.0.22-macOS.zip**](https://github.com/intelQong/DeGram/releases) | Автономный `.app` | [SHA256](https://github.com/intelQong/DeGram/releases) |
 
 ### Быстрый старт
 
 #### 🐧 Linux (x86_64 и ARM64)
 ```bash
 # 1. Скачайте и проверьте SHA-256
-sha256sum -c DeGram-Portable-7.0.21-x86_64.tar.xz.sha256
+sha256sum -c DeGram-Portable-7.0.22-x86_64.tar.xz.sha256
 
 # 2. Распакуйте в любое место (домашняя папка, /opt или флешка)
-tar -xf DeGram-Portable-7.0.21-x86_64.tar.xz
+tar -xf DeGram-Portable-7.0.22-x86_64.tar.xz
 cd DeGram/
 
 # 3. Запустите с изолированным локальным профилем
@@ -151,11 +151,11 @@ cd DeGram/
 ```
 
 #### 🪟 Windows (x64)
-1. Распакуйте `DeGram-Portable-7.0.21-Windows-x64.zip` в любую папку или на флешку.
+1. Распакуйте `DeGram-Portable-7.0.22-Windows-x64.zip` в любую папку или на флешку.
 2. Запустите `DeGram.exe`. Ваши сессии, чаты и база сохраненных сообщений хранятся в папке `DeGramForcePortable\` прямо рядом с программой.
 
 #### 🍏 macOS (Apple Silicon и Intel)
-1. Распакуйте `DeGram-Portable-7.0.21-macOS.zip`.
+1. Распакуйте `DeGram-Portable-7.0.22-macOS.zip`.
 2. Перетащите `DeGram.app` в папку «Программы» или на внешний накопитель.
 3. Если Gatekeeper блокирует неподписанное приложение при первом запуске:
    ```bash
@@ -199,13 +199,13 @@ Telegram/build/docker/centos_env/build_debug.sh
 ### Скрипты упаковки
 ```bash
 # Портативный .tar.xz для Linux
-./scripts/build_portable.sh "7.0.21" "x86_64" "out/Release/DeGram" "."
+./scripts/build_portable.sh "7.0.22" "x86_64" "out/Release/DeGram" "."
 
 # Портативный .zip для Windows (PowerShell)
-./scripts/build_portable_windows.ps1 -Version "7.0.21" -OutputDir "."
+./scripts/build_portable_windows.ps1 -Version "7.0.22" -OutputDir "."
 
 # Портативный .zip для macOS
-./scripts/build_portable_macos.sh "7.0.21" "out/Release/DeGram.app" "."
+./scripts/build_portable_macos.sh "7.0.22" "out/Release/DeGram.app" "."
 ```
 
 ---
@@ -215,4 +215,10 @@ Telegram/build/docker/centos_env/build_debug.sh
 DeGram Desktop распространяется под свободной лицензией **[GNU General Public License v3.0](LICENSE)** с исключением **[OpenSSL Exception](LICENSE.EXCEPTION)**.
 
 * Создан на базе надежного открытого кода [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) и [Desktop App Toolkit](https://github.com/desktop-app).
+* **Благодарность проекту [Telegraher](https://github.com/nikitasius/Telegraher)** от Nikita S. ([@nikitasius](https://github.com/nikitasius)): ключевые концепции приватности и защиты адаптированы и портированы из Telegraher:
+  * **Паник-протокол KABOOM**: Тревожный PIN-код для мгновенного уничтожения сессионных ключей и автоочистка после 10 неудачных попыток ввода пароля.
+  * **Сохранение TTL-медиа**: Обход таймеров самоуничтожения, предотвращающий исчезновение одноразовых (TTL) фото и видео.
+  * **Снятие ограничений контента (DRM)**: Разблокировка копирования, пересылки и сохранения медиа в защищенных чатах и каналах (`noforwards` / `restrict_saving_content`).
+  * **Масштабирование мультиаккаунта**: Снятие лимита Telegram в 3 аккаунта с расширением до 100 одновременных профилей.
+  * **Блокировка рекламы**: Вырезание спонсорских сообщений серверов из ленты публичных каналов.
 * **Дисклеймер**: DeGram Desktop — независимый проект с открытым исходным кодом, который никак не связан с Telegram FZ-LLC, не спонсируется и не поддерживается ими.

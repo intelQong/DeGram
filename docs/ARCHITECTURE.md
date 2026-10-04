@@ -156,3 +156,16 @@ void AyuSettings::executePanicWipe() {
 | `messages.setTyping` | Sent continuously when typing | **Blocked** (Sender sees no typing indicator) |
 | `account.updateStatus` | Sent when app is active | **Blocked / Masked** (User appears offline) |
 | `stories.readStories` | Sent when viewing a story | **Blocked** (Anonymous story viewing) |
+
+---
+
+## 7. Credits & Lineage
+
+* **Upstream**: [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) and [Desktop App Toolkit](https://github.com/desktop-app)
+* **Feature Lineage & Inspiration**: [Telegraher](https://github.com/nikitasius/Telegraher) by Nikita S. ([@nikitasius](https://github.com/nikitasius))
+  * **KABOOM Protocol**: Duress PIN shred routine and 10-fail lockscreen trigger
+  * **TTL Media Preservation**: Disabling self-destruction on view-once media
+  * **Restriction Bypass**: Client-side `noforwards` and `restrict_saving_content` overrides
+  * **Multi-Account Scale**: Expanding concurrent account capacity to 100
+  * **Ad Filtering**: Dropping server sponsored messages
+
