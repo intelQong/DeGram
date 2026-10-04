@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Telegram/Resources/art/ayu/default/app.svg" alt="DeGram Desktop" width="128" height="128">
+<img src=".github/art/degram.svg" alt="DeGram Desktop" width="128" height="128">
 
 # DeGram Desktop
 

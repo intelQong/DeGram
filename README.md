@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Telegram/Resources/art/ayu/default/app.svg" alt="DeGram Desktop" width="128" height="128">
+<img src=".github/art/degram.svg" alt="DeGram Desktop" width="128" height="128">
 
 # DeGram Desktop
 
@@ -108,7 +108,7 @@ flowchart TD
 
 ## Portable Cross-Platform Edition (Official)
 
-**DeGram Desktop is designed to be 100% portable out-of-the-box across Linux, Windows, and macOS.** No installation, administrator (`sudo`) privileges, or external package managers are required. All user sessions, chats, anti-recall SQLite databases (`ayudata.db`), and settings remain strictly isolated inside the local portable directory (`DeGramForcePortable` / `tdata`), leaving zero footprints on the host system and making it ideal for running from USB flash drives.
+**DeGram Desktop is designed to be 100% portable out-of-the-box across Linux, Windows, and macOS.** No installation, administrator (`sudo`) privileges, or external package managers are required. All user sessions, chats, anti-recall SQLite databases, and settings remain strictly isolated inside the local portable directory (`DeGramForcePortable` / `tdata`), leaving zero footprints on the host system and making it ideal for running from USB flash drives.
 
 ### 🐧 Linux (x86_64 & ARM64)
 
@@ -188,13 +188,13 @@ Telegram/build/docker/centos_env/build_debug.sh
 
 | Subsystem | Implementation | Key Files |
 |-----------|---------------|-----------|
-| Anti-Recall | SQLite-backed message retention, intercepts deletion/edit updates | `ayu/data/ayu_database.cpp`, `history.cpp` |
-| Duress / KABOOM | Passcode check → recursive wipe → process kill | `window_lock_widgets.cpp`, `ayu_settings.cpp` |
+| Anti-Recall | SQLite-backed message retention, intercepts deletion/edit updates | `data/database`, `history.cpp` |
+| Duress / KABOOM | Passcode check → recursive wipe → process kill | `window_lock_widgets.cpp`, `settings.cpp` |
 | Kill App Button | Immediate ungraceful exit from drawer menu | `window_main_menu.cpp` |
 | Portable Mode | Automatic detection of `DeGramForcePortable` | `core/launcher.cpp` |
 | Restriction Bypass | `allowsForwarding()` → `true` across all peer types | `data_channel.cpp`, `data_chat.cpp`, `data_user.cpp` |
-| Ghost Mode | Suppress read receipts, typing, online status | `ayu_settings.cpp`, `data_send_action_manager.cpp` |
-| Ad Removal | Filter sponsored messages from API responses | `ayu_settings.cpp`, `data_session.cpp` |
+| Ghost Mode | Suppress read receipts, typing, online status | `settings.cpp`, `data_send_action_manager.cpp` |
+| Ad Removal | Filter sponsored messages from API responses | `settings.cpp`, `data_session.cpp` |
 | Multi-Account | `kMaxAccounts = 100` | `main_domain.h` |
 
 For the full technical specification, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -209,7 +209,6 @@ DeGram Desktop is built upon the open-source Telegram ecosystem:
 |---------|-------------|
 | [**Telegram Desktop**](https://github.com/telegramdesktop/tdesktop) | Official base client and MTProto protocol implementation |
 | [**Telegraher**](https://github.com/nikitasius/Telegraher) | Duress passcode, KABOOM panic wipe, 100-account expansion, forwarding bypasses |
-| [**AyuGram Desktop**](https://github.com/AyuGram/AyuGramDesktop) | Ghost mode, message filters, anti-recall SQLite engine |
 | [**Desktop App Toolkit**](https://github.com/desktop-app) | Shared C++ libraries — `lib_ui`, `lib_base`, `lib_rpl`, `lib_crl` |
 
 ---
