@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+// This is the source code of DeGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -353,6 +353,15 @@ public:
 	[[nodiscard]] int avatarCorners() const { return _avatarCorners.current(); }
 	[[nodiscard]] bool singleCornerRadius() const { return _singleCornerRadius.current(); }
 	[[nodiscard]] bool streamerMode() const { return _streamerMode.current(); }
+	[[nodiscard]] const QString &duressPasscode() const { return _duressPasscode.current(); }
+	[[nodiscard]] int kaboomPinFails() const { return _kaboomPinFails.current(); }
+
+	[[nodiscard]] bool isDuressPasscode(const QString &passcode) const;
+	[[nodiscard]] bool shouldPanicOnBadTries(int tries) const;
+	static void executePanicWipe();
+
+	void setDuressPasscode(const QString &val);
+	void setKaboomPinFails(int val);
 
 	void setSaveDeletedMessages(bool val);
 	void setSaveMessagesHistory(bool val);
@@ -615,6 +624,10 @@ public:
 	[[nodiscard]] rpl::producer<bool> singleCornerRadiusChanges() const { return _singleCornerRadius.changes(); }
 	[[nodiscard]] rpl::producer<bool> streamerModeValue() const { return _streamerMode.value(); }
 	[[nodiscard]] rpl::producer<bool> streamerModeChanges() const { return _streamerMode.changes(); }
+	[[nodiscard]] rpl::producer<QString> duressPasscodeValue() const { return _duressPasscode.value(); }
+	[[nodiscard]] rpl::producer<QString> duressPasscodeChanges() const { return _duressPasscode.changes(); }
+	[[nodiscard]] rpl::producer<int> kaboomPinFailsValue() const { return _kaboomPinFails.value(); }
+	[[nodiscard]] rpl::producer<int> kaboomPinFailsChanges() const { return _kaboomPinFails.changes(); }
 
 	friend void to_json(nlohmann::json &j, const AyuSettings &s);
 	friend void from_json(const nlohmann::json &j, AyuSettings &s);
@@ -707,10 +720,12 @@ private:
 	rpl::variable<TranslationProvider> _translationProvider = TranslationProvider::Telegram;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
-	rpl::variable<bool> _crashReporting = true;
+	rpl::variable<bool> _crashReporting = false;
 	rpl::variable<int> _avatarCorners = 23;
 	rpl::variable<bool> _singleCornerRadius = false;
 	rpl::variable<bool> _streamerMode = false;
+	rpl::variable<QString> _duressPasscode = QString();
+	rpl::variable<int> _kaboomPinFails = 10;
 
 	rpl::variable<bool> _useGlobalGhostMode = true;
 	std::map<uint64, std::unique_ptr<GhostModeAccountSettings>> _ghostAccounts;

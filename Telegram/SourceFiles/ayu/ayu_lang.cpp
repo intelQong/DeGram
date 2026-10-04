@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+// This is the source code of DeGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -83,7 +83,7 @@ void AyuLanguage::loadCachedLanguage() {
 		QJsonParseError error{};
 		const auto doc = QJsonDocument::fromJson(data, &error);
 		if (error.error == QJsonParseError::NoError) {
-			LOG(("Loading cached AyuGram language: %1").arg(finalLangPackId));
+			LOG(("Loading cached DeGram language: %1").arg(finalLangPackId));
 			applyLanguageJson(doc);
 		}
 	}
@@ -98,7 +98,7 @@ void AyuLanguage::saveCachedLanguage(const QByteArray &json, const QString &lang
 	if (file.open(QIODevice::WriteOnly)) {
 		file.write(json);
 		file.close();
-		LOG(("Cached AyuGram language: %1").arg(langId));
+		LOG(("Cached DeGram language: %1").arg(langId));
 	}
 }
 
@@ -137,7 +137,7 @@ void AyuLanguage::fetchFinished() {
 	auto statusCode = _chkReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
 	if (statusCode == 404 && !langPackId.isEmpty() && !langPackBaseId.isEmpty() && !needFallback) {
-		LOG(("AyuGram Language not found! Fallback to main language: %1...").arg(langPackBaseId));
+		LOG(("DeGram Language not found! Fallback to main language: %1...").arg(langPackBaseId));
 		needFallback = true;
 		_chkReply->disconnect();
 		fetchLanguage("", langPackBaseId);
@@ -164,12 +164,12 @@ void AyuLanguage::fetchError(QNetworkReply::NetworkError e) {
 		const auto id = Lang::GetInstance().id();
 
 		if (!id.isEmpty() && !baseId.isEmpty() && !needFallback) {
-			LOG(("AyuGram Language not found! Fallback to main language: %1...").arg(baseId));
+			LOG(("DeGram Language not found! Fallback to main language: %1...").arg(baseId));
 			needFallback = true;
 			_chkReply->disconnect();
 			fetchLanguage("", baseId);
 		} else {
-			LOG(("AyuGram Language not found!"));
+			LOG(("DeGram Language not found!"));
 			_chkReply = nullptr;
 		}
 	}
@@ -180,6 +180,14 @@ void AyuLanguage::applyLanguageJson(QJsonDocument doc) {
 	for (const QString &brokenKey : json.keys()) {
 		auto key = qsl("ayu_") + brokenKey;
 		auto val = json.value(brokenKey).toString().replace(qsl("&amp;"), qsl("&"));
+
+		val = val.replace(qsl("AyuGram"), qsl("DeGram"))
+			.replace(qsl("Ayugram"), qsl("DeGram"))
+			.replace(qsl("ayugram"), qsl("degram"))
+			.replace(qsl("Kangram"), qsl("DeGram"))
+			.replace(qsl("Kamgram"), qsl("DeGram"))
+			.replace(qsl("kangram"), qsl("degram"))
+			.replace(qsl("kamgram"), qsl("degram"));
 
 		if (key.endsWith("_Android")) {
 			continue;

@@ -247,7 +247,28 @@ bool CheckPortableVersionFolder() {
 		return false;
 	}
 
-	const auto portable = cExeDir() + u"TelegramForcePortable"_q;
+	auto portable = QString();
+	if (QDir(cExeDir() + u"DeGramForcePortable"_q).exists()) {
+		portable = cExeDir() + u"DeGramForcePortable"_q;
+	} else if (QDir(cExeDir() + u"KangramForcePortable"_q).exists()) {
+		portable = cExeDir() + u"KangramForcePortable"_q;
+	} else if (QDir(cExeDir() + u"TelegramForcePortable"_q).exists()) {
+		portable = cExeDir() + u"TelegramForcePortable"_q;
+	} else if (QDir(cExeDir() + u"tdata"_q).exists() || QFile::exists(cExeDir() + u"portable"_q)) {
+		portable = cExeDir();
+#ifdef Q_OS_MAC
+	} else if (QDir(cExeDir() + cExeName() + u"/Contents/Resources/DeGramForcePortable"_q).exists()) {
+		portable = cExeDir() + cExeName() + u"/Contents/Resources/DeGramForcePortable"_q;
+	} else if (QDir(cExeDir() + cExeName() + u"/Contents/Resources/KangramForcePortable"_q).exists()) {
+		portable = cExeDir() + cExeName() + u"/Contents/Resources/KangramForcePortable"_q;
+	} else if (QDir(cExeDir() + cExeName() + u"/Contents/Resources/TelegramForcePortable"_q).exists()) {
+		portable = cExeDir() + cExeName() + u"/Contents/Resources/TelegramForcePortable"_q;
+#endif // Q_OS_MAC
+	}
+	if (portable.isEmpty()) {
+		return true;
+	}
+
 	QFile key(portable + u"/tdata/alpha"_q);
 	if (cAlphaVersion()) {
 		Assert(*AlphaPrivateKey != 0);
@@ -263,9 +284,6 @@ bool CheckPortableVersionFolder() {
 		QDataStream dataStream(&key);
 		dataStream.setVersion(QDataStream::Qt_5_3);
 		dataStream << quint64(cRealAlphaVersion()) << cAlphaPrivateKey();
-		return true;
-	}
-	if (!QDir(portable).exists()) {
 		return true;
 	}
 	cForceWorkingDir(portable);
@@ -336,7 +354,7 @@ void Launcher::init() {
 	prepareSettings();
 	initQtMessageLogging();
 
-	QApplication::setApplicationName(u"AyuGramDesktop"_q);
+	QApplication::setApplicationName(u"DeGramDesktop"_q);
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	// fallback session management is useless for tdesktop since it doesn't have

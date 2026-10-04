@@ -66,7 +66,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QClipboard>
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/features/forward/ayu_forward.h"
 
 

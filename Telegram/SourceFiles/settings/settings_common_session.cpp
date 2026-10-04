@@ -12,7 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/sections/settings_chat.h"
 #include "settings/sections/settings_main.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/settings/settings_filters.h"
 
 

@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+// This is the source code of DeGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -99,7 +99,7 @@ private:
 	std::unordered_set<ID> _supporterChannels = {};
 	std::unordered_map<ID, CustomBadge> _customBadges = {};
 
-	QString _donateUsername = QString("@ayugramOwner");
+	QString _donateUsername = QString("@intelQong");
 	QString _donateAmountUsd = QString("5.00");
 	QString _donateAmountTon = QString("3.50");
 	QString _donateAmountRub = QString("386");

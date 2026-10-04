@@ -89,11 +89,11 @@ public:
 
 		return _peer;
 	}
-	// AyuGram
+	// DeGram
 	void setPeer(not_null<PeerData*> peer) {
 		_peer = peer;
 	}
-	// AyuGram
+	// DeGram
 
 	[[nodiscard]] PeerListRowId id() const {
 		return _id;

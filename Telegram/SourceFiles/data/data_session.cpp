@@ -91,7 +91,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/random.h"
 #include "spellcheck/spellcheck_highlight_syntax.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/filters/filters_controller.h"
@@ -340,7 +340,7 @@ Session::Session(not_null<Main::Session*> session)
 			}
 		}, _lifetime);
 
-		// AyuGram disableStories
+		// DeGram disableStories
 		const auto &settings = AyuSettings::getInstance();
 		if (!settings.disableStories()) {
 			_stories->loadMore(Data::StorySourcesList::NotHidden);
@@ -2917,7 +2917,7 @@ void Session::updateEditedMessage(const MTPMessage &data) {
 		return;
 	}
 
-	// AyuGram saveMessagesHistory
+	// DeGram saveMessagesHistory
 	const auto &settings = AyuSettings::getInstance();
 	HistoryMessageEdition edit;
 
@@ -5344,7 +5344,7 @@ void Session::registerItemView(not_null<ViewElement*> view) {
 void Session::unregisterItemView(not_null<ViewElement*> view) {
 	// Expects(!_heavyViewParts.contains(view));
 	if (_heavyViewParts.contains(view)) {
-		view->unloadHeavyPart(); // AyuGram: fix crash when using `saveDeletedMessages`
+		view->unloadHeavyPart(); // DeGram: fix crash when using `saveDeletedMessages`
 	}
 
 	_shownSpoilers.remove(view);

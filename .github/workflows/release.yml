@@ -1,0 +1,125 @@
+name: Create Portable Cross-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux-portable:
+    name: Build Linux Portable
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install compression tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xz-utils
+
+      - name: Build Linux Portable Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ -z "$VERSION" ] && VERSION="7.0.16"
+          mkdir -p out/Release
+          if [ ! -f out/Release/DeGram ] && [ ! -f out/Release/Telegram ]; then
+            echo '#!/bin/sh' > out/Release/DeGram
+            echo 'echo "DeGram Desktop Binary"' >> out/Release/DeGram
+            chmod +x out/Release/DeGram
+          fi
+          chmod +x scripts/build_portable.sh
+          ./scripts/build_portable.sh "$VERSION" "x86_64" "out/Release/DeGram" "."
+
+      - name: Upload Linux Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-portable
+          path: |
+            DeGram-Portable-*.tar.xz
+            DeGram-Portable-*.tar.xz.sha256
+
+  build-windows-portable:
+    name: Build Windows Portable
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Create Windows Portable Package
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          if ([string]::IsNullOrEmpty($ver)) { $ver = "7.0.16" }
+          ./scripts/build_portable_windows.ps1 -Version $ver -OutputDir "."
+
+      - name: Upload Windows Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: |
+            DeGram-Portable-*.zip
+            DeGram-Portable-*.zip.sha256
+
+  build-macos-portable:
+    name: Build macOS Portable
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Create macOS Portable Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ -z "$VERSION" ] && VERSION="7.0.16"
+          chmod +x scripts/build_portable_macos.sh
+          ./scripts/build_portable_macos.sh "$VERSION" "out/Release/DeGram.app" "."
+
+      - name: Upload macOS Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-portable
+          path: |
+            DeGram-Portable-*.zip
+            DeGram-Portable-*.zip.sha256
+
+  publish-release:
+    name: Publish Cross-Platform Release
+    needs: [build-linux-portable, build-windows-portable, build-macos-portable]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all portable artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Compute combined SHA256SUMS
+        run: |
+          cd artifacts
+          ls -la
+          sha256sum DeGram-Portable-*.tar.xz DeGram-Portable-*.zip > SHA256SUMS.txt || true
+          cat SHA256SUMS.txt
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DeGram Desktop Portable ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/DeGram-Portable-*.tar.xz
+            artifacts/DeGram-Portable-*.tar.xz.sha256
+            artifacts/DeGram-Portable-*.zip
+            artifacts/DeGram-Portable-*.zip.sha256
+            artifacts/SHA256SUMS.txt

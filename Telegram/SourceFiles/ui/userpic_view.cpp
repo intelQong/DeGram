@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <cmath>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/ayu_userpic.h"
 
 

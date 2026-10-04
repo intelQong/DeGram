@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/utils/telegram_helpers.h"
 
 

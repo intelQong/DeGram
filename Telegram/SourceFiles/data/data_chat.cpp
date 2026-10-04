@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "api/api_invite_links.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -73,7 +73,7 @@ bool ChatData::isAyuNoForwards() const {
 }
 
 bool ChatData::allowsForwarding() const {
-	return !(flags() & Flag::NoForwards);
+	return true;
 }
 
 bool ChatData::canEditInformation() const {

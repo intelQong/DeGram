@@ -56,7 +56,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <kurlmimedata.h>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/ayu_logo.h"
 
 
@@ -865,7 +865,7 @@ void MainWindow::updateTitle() {
 		: Dialogs::Key();
 	const auto thread = key ? key.thread() : nullptr;
 	if (!thread) {
-		setTitle((user.isEmpty() ? u"AyuGram"_q : user) + added);
+		setTitle((user.isEmpty() ? u"DeGram"_q : user) + added);
 		return;
 	}
 	const auto history = thread->owningHistory();

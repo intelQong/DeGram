@@ -43,7 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <xxhash.h> // XXH64.
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
+// DeGram includes
 #include "styles/style_ayu_icons.h"
 #include "ayu/ui/ayu_userpic.h"
 

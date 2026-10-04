@@ -64,7 +64,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtGui/QGuiApplication>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/features/filters/filters_controller.h"
 
 

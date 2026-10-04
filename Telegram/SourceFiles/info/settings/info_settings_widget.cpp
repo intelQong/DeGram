@@ -14,7 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "menu/menu_send.h"
 #include "ui/ui_utility.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/settings/settings_main.h"
 
 

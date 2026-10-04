@@ -14,7 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/ayu_userpic.h"
 
 

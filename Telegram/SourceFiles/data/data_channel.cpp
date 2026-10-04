@@ -40,7 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/unread_badge.h"
 #include "window/notifications_manager.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -785,7 +785,7 @@ bool ChannelData::isAyuNoForwards() const {
 }
 
 bool ChannelData::allowsForwarding() const {
-	return !(flags() & Flag::NoForwards);
+	return true;
 }
 
 bool ChannelData::canViewMembers() const {

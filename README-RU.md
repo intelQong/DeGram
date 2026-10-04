@@ -1,154 +1,106 @@
-# AyuGram
+<div align="center">
 
-![AyuGram Лого](.github/AyuGram.png) ![AyuChan](.github/AyuChan.png)
+<img src="Telegram/Resources/art/ayu/default/app.svg" alt="DeGram Desktop" width="128" height="128">
 
-[ [English](README.md)  | Русский ]
+# DeGram Desktop
 
-## Функции и Фишки
+**Портативный клиент Telegram Desktop с защитой приватности, сохранением удаленных сообщений (Anti-Recall), экстренной очисткой (KABOOM), режимом призрака и обходом ограничений.**
 
-- Полный режим призрака (настраиваемый)
-- История удалений и изменений сообщений
-- Кастомизация шрифта
-- Режим Стримера
-- Локальный телеграм премиум
-- Переводчик
-- Превью медиа и быстрая реакция при сильном нажатии на тачпад (macOS)
-- Улучшенный вид
+[![Версия](https://img.shields.io/badge/версия-7.0.16-6c5ce7?style=flat-square)](https://github.com/intelQong/DeGram/releases)
+[![Лицензия](https://img.shields.io/badge/лицензия-GPL--3.0-blue?style=flat-square)](LICENSE)
+[![Платформы](https://img.shields.io/badge/платформы-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey?style=flat-square)](#портативная-версия-официальная)
 
-И многое другое. Посмотрите нашу [Документацию](https://docs.ayugram.one/desktop/) для более подробной информации.
+[English](README.md) · [Русский](README-RU.md) · [Скачать](#портативная-версия-официальная) · [Возможности](#возможности) · [Архитектура](docs/ARCHITECTURE.md) · [Сборка](#сборка-из-исходников)
 
-<h3>
-  <details>
-    <summary>Превью</summary>
-    <table>
-      <tr>
-        <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='AyuGram Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Message Filters'></td>
-      </tr>
-      <tr>
-        <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
-        <td><img src='.github/demos/demo5.png' width='268' alt='Chats'></td>
-      </tr>
-    </table>
-  </details>
-</h3>
+</div>
 
-## Установка
+---
 
-### Windows
+## Возможности
 
-#### Официальная версия
+### 🛡️ Сохранение сообщений и истории правок (Anti-Recall)
+Сообщения, удаленные или измененные собеседниками, сохраняются в локальной базе данных SQLite с полными метками времени и историей правок. Ничто не исчезает без вашего согласия.
 
-Вы можете скачать готовый бинарный файл со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases) или из
-[Телеграм канала](https://t.me/AyuGramReleases).
+### 💣 Код принуждения и экстренная очистка (KABOOM)
+Ввод специального пароля на экране блокировки — или превышение 10 неверных попыток ввода — запускает мгновенное и рекурсивное удаление всех ключей сессий, баз данных и аварийно завершает приложение.
 
-#### Winget
+### 🛑 Кнопка «Убить приложение» (Kill the App)
+Кнопка немедленного аварийного завершения работы приложения прямо в главном боковом меню, без задержек и фоновых процессов.
 
-```bash
-winget install RadolynLabs.AyuGramDesktop
-```
+### 🔓 Обход ограничений на копирование и пересылку
+Сохраняйте медиафайлы и пересылайте сообщения из закрытых каналов с ограничениями (`noforwards`, `restrict_saving_content`). Ограничения на пересылку историй также сняты.
 
-#### Scoop
+### ⏳ Сохранение исчезающих медиа (TTL)
+Одноразовые фото и видео не исчезают автоматически и остаются доступны до тех пор, пока вы сами их не закроете.
 
-```bash
-scoop bucket add extras
-scoop install ayugram
-```
+### 👻 Режим призрака (Ghost Mode)
+Гибкий контроль видимости: отключение статуса «в сети», скрытие прочтения сообщений и индикатора набора текста.
 
-#### Сборка вручную
+### 🚫 Блокировка рекламы
+Спонсорские и рекламные сообщения в каналах автоматически вырезаются до отображения.
 
-Следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-win-x64.md), если
-вы хотите собрать AyuGram сами.
+### 👥 До 100 аккаунтов одновременно
+Поддержка одновременного входа до 100 учетных записей с быстрым переключением.
 
-### macOS
+### 📡 Полное отсутствие телеметрии
+Отправка отчетов о сбоях на сторонние серверы отключена по умолчанию. Никаких трекеров и аналитики.
 
-#### Официальная версия
+---
 
-Вы можете скачать подписанный пакет со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases).
+## Портативная версия (Официальная)
 
-#### Homebrew
+**DeGram Desktop работает в 100% портативном режиме на Linux, Windows и macOS.** Установка и права администратора не требуются. Все сессии, чаты, настройки и базы данных хранятся исключительно в локальной папке `DeGramForcePortable` (или `tdata`), не оставляя следов в системе и реестре.
+
+### 🐧 Linux (x86_64 и ARM64)
+
+Скачайте архив для вашей архитектуры со страницы [Releases](https://github.com/intelQong/DeGram/releases):
 
 ```bash
-brew install --cask ayugram
+tar -xf DeGram-Portable-7.0.16-x86_64.tar.xz
+cd DeGram/
+./DeGram.sh   # или ./degram
 ```
 
-### Arch Linux
+### 🪟 Windows (x64)
 
-#### Из исходников (рекомендованный способ)
+Скачайте архив `.zip` со страницы [Releases](https://github.com/intelQong/DeGram/releases):
 
-Установите `ayugram-desktop` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop).
+1. Распакуйте `DeGram-Portable-7.0.16-Windows-x64.zip` в любую папку или на USB-флешку.
+2. Запустите `DeGram.exe`.
 
-#### Готовые бинарники
+### 🍏 macOS (Universal / Apple Silicon и Intel)
 
-Установите `ayugram-desktop-bin` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop-bin).
+Скачайте архив `.zip` со страницы [Releases](https://github.com/intelQong/DeGram/releases):
 
-Примечание: данный пакет собирается не нами.
+1. Распакуйте `DeGram-Portable-7.0.16-macOS.zip` на диск или USB-накопитель.
+2. Запустите `DeGram.app`.
+3. *(При необходимости)* Если система блокирует запуск:
+   ```bash
+   xattr -cr /путь/к/DeGram/DeGram.app
+   ```
 
-### NixOS
+---
 
-#### Флейк (рекомендуется)
+## Сборка из исходников
 
-Установите `ayugram-desktop` из [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
-
-#### Nixpkgs
-
-Установите `ayugram-desktop` из [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
-
-### ALT Linux
-
-[Sisyphus](https://packages.altlinux.org/en/sisyphus/srpms/ayugram-desktop/)
-
-### Gentoo Linux
-
-Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-ebuild-gentoo).
-
-### Void Linux
-Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-template-void)
-
-### EPM
-
-`epm play ayugram`
-
-### Fedora
-
-Из репозитория [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/).
+DeGram Desktop собирается с использованием **C++20**, **Qt 6** и **CMake**.
 
 ```bash
-dnf install ayugram-desktop
+# Debug-сборка
+cmake --build out --config Debug --target Telegram
+
+# Упаковка портативной версии для Linux
+./scripts/build_portable.sh "7.0.16" "x86_64" "out/Release/DeGram" "."
+
+# Упаковка для Windows (PowerShell)
+./scripts/build_portable_windows.ps1 -Version "7.0.16" -OutputDir "."
+
+# Упаковка для macOS
+./scripts/build_portable_macos.sh "7.0.16" "out/Release/DeGram.app" "."
 ```
 
-### Любой другой Линукс дистрибутив
+---
 
-Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
+## Лицензия
 
-Или следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-linux.md).
-
-## Пожертвования
-
-Вам нравится использовать **AyuGram**? Оставьте нам чаевые!
-
-[Здесь доступные варианты.](https://docs.ayugram.one/donate/)
-
-## Использованные материалы
-
-### Телеграм клиенты
-
-- [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
-- [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
-- [64Gram](https://github.com/TDesktop-x64/tdesktop)
-- [Forkgram](https://github.com/forkgram/tdesktop)
-
-### Использованные библиотеки
-
-- [JSON for Modern C++](https://github.com/nlohmann/json)
-- [SQLite](https://github.com/sqlite/sqlite)
-- [sqlite_orm](https://github.com/fnc12/sqlite_orm)
-
-### Иконки
-
-- [Solar Icon Set](https://www.figma.com/community/file/1166831539721848736)
-
-### Боты
-
-- [TelegramDB](https://t.me/tgdatabase) для получения юзернейма по ID (до закрытия бесплатной версии 2 апреля 2026)
+DeGram Desktop распространяется под лицензией [GNU General Public License v3.0](LICENSE) с исключением для OpenSSL.

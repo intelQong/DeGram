@@ -39,7 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 #include "styles/style_polls.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 
 

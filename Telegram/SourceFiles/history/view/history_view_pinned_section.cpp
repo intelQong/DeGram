@@ -58,7 +58,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QMimeData>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/features/message_shot/message_shot.h"
 
 

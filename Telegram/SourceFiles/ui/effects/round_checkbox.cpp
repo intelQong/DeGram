@@ -18,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QCoreApplication>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ui/ayu_userpic.h"
 
 

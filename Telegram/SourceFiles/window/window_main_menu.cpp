@@ -79,7 +79,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
@@ -391,8 +391,8 @@ MainMenu::MainMenu(
 	parentResized();
 
 	_telegram->setMarkedText(tr::link(
-		u"AyuGram Desktop"_q,
-		u"https://ayugram.one"_q));
+		u"DeGram Desktop"_q,
+		u"https://github.com/intelQong/DeGram"_q));
 	_telegram->setLinksTrusted();
 	_version->setMarkedText(
 		tr::link(
@@ -842,6 +842,13 @@ void MainMenu::setupMenu() {
 		controller->showSettings();
 	});
 
+	addAction(
+		tr::ayu_AyuPreferences(),
+		{ &st::menuIconPremium }
+	)->setClickedCallback([=] {
+		controller->showSettings(Settings::AyuMain::Id());
+	});
+
 	if (settings.showNightModeToggleInDrawer()) {
 
 	_nightThemeToggle = addAction(
@@ -920,6 +927,13 @@ void MainMenu::setupMenu() {
 			},
 			streamerModeToggle->lifetime());
 	}
+
+	addAction(
+		rpl::single(QString("Kill the App")),
+		{&st::menuIconLock}
+	)->setClickedCallback([=] {
+		std::_Exit(0);
+	});
 }
 
 void MainMenu::resizeEvent(QResizeEvent *e) {

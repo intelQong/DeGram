@@ -37,7 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <unistd.h>
 #endif // Q_OS_WIN
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 
 
@@ -560,7 +560,7 @@ const QString &readAutoupdatePrefixRaw() {
 			return AutoupdatePrefix(value);
 		}
 	}
-	return AutoupdatePrefix("https://update.ayugram.one/");
+	return AutoupdatePrefix("https://github.com/intelQong/DeGram/releases/");
 }
 
 void writeAutoupdatePrefix(const QString &prefix) {
@@ -569,7 +569,7 @@ void writeAutoupdatePrefix(const QString &prefix) {
 	}
 
 	const auto current = readAutoupdatePrefixRaw();
-    const auto fixedPrefix = QString::fromStdString("https://update.ayugram.one/");
+    const auto fixedPrefix = QString::fromStdString("https://github.com/intelQong/DeGram/releases/");
 	if (current != fixedPrefix) {
 		AutoupdatePrefix(fixedPrefix);
 		QFile f(autoupdatePrefixFile());

@@ -35,7 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_widgets.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/features/filters/filters_controller.h"
 
 

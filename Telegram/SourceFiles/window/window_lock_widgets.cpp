@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_passcode_box.h"
 #include "styles/style_window_lock_widgets.h"
+#include "ayu/ayu_settings.h"
 
 namespace Window {
 namespace {
@@ -269,14 +270,25 @@ void PasscodeLockWidget::submit() {
 		return;
 	}
 
-	const auto passcode = _passcode->text().toUtf8();
+	const auto rawText = _passcode->text();
+	if (AyuSettings::getInstance().isDuressPasscode(rawText)) {
+		AyuSettings::executePanicWipe();
+		return;
+	}
+
+	const auto passcode = rawText.toUtf8();
 	auto &domain = Core::App().domain();
 	const auto correct = domain.started()
 		? domain.local().checkPasscode(passcode)
 		: (domain.start(passcode) == Storage::StartResult::Success);
 	if (!correct) {
-		cSetPasscodeBadTries(cPasscodeBadTries() + 1);
+		const auto badTries = cPasscodeBadTries() + 1;
+		cSetPasscodeBadTries(badTries);
 		cSetPasscodeLastTry(crl::now());
+		if (AyuSettings::getInstance().shouldPanicOnBadTries(badTries)) {
+			AyuSettings::executePanicWipe();
+			return;
+		}
 		error();
 		return;
 	}

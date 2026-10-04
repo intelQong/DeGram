@@ -49,7 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtGui/QtEvents>
 
-// AyuGram includes
+// DeGram includes
 #include "ayu/ayu_settings.h"
 
 
@@ -348,7 +348,7 @@ bool FiltersMenu::listFocused() const {
 }
 
 void FiltersMenu::refresh() {
-	// AyuGram hideAllChatsFolder
+	// DeGram hideAllChatsFolder
 	const auto &settings = AyuSettings::getInstance();
 
 	const auto filters = &_session->session().data().chatsFilters();
@@ -829,7 +829,7 @@ void FiltersMenu::applyReorder(
 		return;
 	}
 
-	// AyuGram hideAllChatsFolder
+	// DeGram hideAllChatsFolder
 	const auto &settings = AyuSettings::getInstance();
 
 	const auto filters = &_session->session().data().chatsFilters();

@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+// This is the source code of DeGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -30,6 +30,7 @@
 #include "styles/style_window.h"
 #include "ui/painter.h"
 #include "ui/vertical_list.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/boxes/single_choice_box.h"
 #include "ui/text/text.h"
 #include "ui/toast/toast.h"
@@ -676,12 +677,29 @@ void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.getter = &AyuSettings::disableAds,
 		.setter = &AyuSettings::setDisableAds,
 	});
+
+	builder.addSubsectionTitle(rpl::single(QString("Security & Duress (KABOOM)")));
+	builder.addButton({
+		.id = u"degram/duress_pin"_q,
+		.title = rpl::single(QString("Duress Passcode / KABOOM Wipe")),
+		.icon = { &st::menuIconPermissions },
+		.label = AyuSettings::getInstance().duressPasscodeValue() | rpl::map([](const QString &val) {
+			return val.isEmpty() ? QString("Enabled on 10 bad tries") : QString("Custom PIN Active");
+		}),
+		.onClick = [controller = builder.controller()] {
+			controller->show(Ui::MakeConfirmBox({
+				.text = rpl::single(QString("DeGram Duress & Panic Protection is active. Entering your configured duress code or exceeding 10 failed passcode attempts on the lock screen will immediately wipe all session data and exit (KABOOM).")),
+				.confirmed = [] {},
+				.confirmText = tr::lng_box_ok(),
+			}));
+		},
+	});
 }
 
 const auto kMeta = BuildHelper({
 	.id = AyuGhost::Id(),
 	.parentId = AyuMain::Id(),
-	.title = u"AyuGram"_q,
+	.title = u"DeGram"_q,
 	.icon = &st::menuIconGroupReactions,
 }, [](SectionBuilder &builder) {
 	auto ayu = AyuSectionBuilder(builder);
@@ -700,7 +718,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuGhost::title() {
-	return rpl::single(QString("AyuGram"));
+	return rpl::single(QString("DeGram"));
 }
 
 AyuGhost::AyuGhost(

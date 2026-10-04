@@ -1,6 +1,6 @@
 # Contributing
 
-This document describes how you can contribute to AyuGram Desktop.
+This document describes how you can contribute to DeGram Desktop.
 
 **Table of Contents**
 
@@ -17,98 +17,45 @@ This document describes how you can contribute to AyuGram Desktop.
 
 ## What contributions are accepted
 
-We highly appreciate your contributions in the matter of fixing bugs and optimizing the AyuGram Desktop source code and its documentation. In case of fixing the existing user experience please push to your fork and [submit a pull request][pr].
-
-If you have a translations-related contribution, check out [our Crowdin][translate].
-
-Highly appreciated feature implementations from [Android app][android_repo].
+We highly appreciate your contributions in fixing bugs, improving portability, and optimizing the DeGram Desktop source code and its documentation. Please push to your fork and [submit a pull request][pr].
 
 ## Build instructions
 
-See [folder with instructions][build_instructions] for details on the various build
-environments.
+See [folder with instructions][build_instructions] for details on the various build environments.
 
 ## Pull upstream changes into your fork regularly
 
-Telegram Desktop is advancing quickly. It is therefore critical that you pull upstream changes into your fork on a regular basis. Nothing is worse than putting in a days of hard work into a pull request only to have it rejected because it has diverged too far from upstream.
+DeGram Desktop is continuously evolving. It is recommended that you pull upstream changes into your fork on a regular basis:
 
-To pull in upstream changes:
-
-    git remote add upstream https://github.com/AyuGram/AyuGramDesktop.git
-    git fetch upstream master
-
-Check the log to be sure that you actually want the changes, before merging:
-
-    git log upstream/master
-
-Then rebase your changes on the latest commits in the `master` branch:
-
-    git rebase upstream/master
-
-After that, you have to force push your commits:
-
-    git push --force
+    git remote add upstream https://github.com/intelQong/DeGram.git
+    git fetch upstream main
+    git rebase upstream/main
 
 For more info, see [GitHub Help][help_fork_repo].
 
 ## How to get your pull request accepted
 
-We want to improve AyuGram Desktop with your contributions. But we also want to provide a stable experience for our users and the community. Follow these rules and you should succeed without a problem!
+We want to improve DeGram Desktop with your contributions while ensuring high stability and privacy for our users.
 
 ### Keep your pull requests limited to a single issue
 
-Pull requests should be as small/atomic as possible. Large, wide-sweeping changes in a pull request will be **rejected**, with comments to isolate the specific code in your pull request. Some examples:
-
-* If you are making spelling corrections in the docs, don't modify other files.
-* If you are adding new functions don't '*cleanup*' unrelated functions. That cleanup belongs in another pull request.
-
-#### Squash your commits to a single commit
-
-To keep the history of the project clean, you should make one commit per pull request.
-If you already have multiple commits, you can add the commits together (squash them) with the following commands in Git Bash:
-
-1. Open `Git Bash` (or `Git Shell`)
-2. Enter following command to squash the recent {N} commits: `git reset --soft HEAD~{N} && git commit` (replace `{N}` with the number of commits you want to squash)
-3. Press <kbd>i</kbd> to get into Insert-mode
-4. Enter the commit message of the new commit
-5. After adding the message, press <kbd>ESC</kbd> to get out of the Insert-mode
-6. Write `:wq` and press <kbd>Enter</kbd> to save the new message or write `:q!` to discard your changes
-7. Enter `git push --force` to push the new commit to the remote repository
-
-For example, if you want to squash the last 5 commits, use `git reset --soft HEAD~5 && git commit`
+Pull requests should be as small/atomic as possible. Large, wide-sweeping changes in a single pull request are harder to review.
 
 ### Don't mix code changes with whitespace cleanup
 
-If you change two lines of code and correct 200 lines of whitespace issues in a file the diff on that pull request is functionally unreadable and will be **rejected**. Whitespace cleanups need to be in their own pull request.
-
-### Keep your code simple!
-
-Please keep your code as clean and straightforward as possible.
-Furthermore, the pixel shortage is over. We want to see:
-
-* `opacity` instead of `o`
-* `placeholder` instead of `ph`
-* `myFunctionThatDoesThings()` instead of `mftdt()`
+Keep formatting changes separated from functional code changes.
 
 ### Test your changes!
 
-Before you submit a pull request, please test your changes. Verify that Telegram Desktop still works and your changes don't cause other issue or crashes.
+Before you submit a pull request, please test your changes. Verify that DeGram Desktop compiles and runs cleanly in portable mode.
 
 ### Write a good commit message
 
-* Explain why you make the changes. [More infos about a good commit message.][commit_message]
-
-* If you fix an issue with your commit, please close the issue by [adding one of the keywords and the issue number][closing-issues-via-commit-messages] to your commit message.
-
-  For example: `Fix #545`
+* Clearly summarize what was changed and why.
 
 [//]: # (LINKS)
 [telegram]: https://telegram.org/
 [help_fork_repo]: https://help.github.com/articles/fork-a-repo/
-[help_change_commit_message]: https://help.github.com/articles/changing-a-commit-message/
 [commit_message]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
-[pr]: https://github.com/AyuGram/AyuGramDesktop/compare
-[build_instructions]: https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs
-[closing-issues-via-commit-messages]: https://help.github.com/articles/closing-issues-via-commit-messages/
-[translate]: https://crowdin.com/project/ayugram
-[android_repo]: https://github.com/AyuGram/AyuGram4A
+[pr]: https://github.com/intelQong/DeGram/compare
+[build_instructions]: https://github.com/intelQong/DeGram/blob/main/docs

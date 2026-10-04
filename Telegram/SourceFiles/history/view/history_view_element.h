@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/weak_ptr.h"
 #include "ui/userpic_view.h"
 
-// AyuGram includes
+// DeGram includes
 #include "ui/effects/animations.h"
 
 

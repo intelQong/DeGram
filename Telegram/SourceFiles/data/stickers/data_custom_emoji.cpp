@@ -1039,7 +1039,7 @@ TextWithEntities SingleCustomEmoji(not_null<DocumentData*> document) {
 bool AllowEmojiWithoutPremium(
 		not_null<PeerData*> peer,
 		DocumentData *exactEmoji) {
-	if (true) { // AyuGram: allow all premium emojis (via tg://emoji?id=...)
+	if (true) { // DeGram: allow all premium emojis (via tg://emoji?id=...)
 		return true;
 	}
 
