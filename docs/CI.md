@@ -24,7 +24,7 @@ Repository secrets `API_ID` and `API_HASH` (see [api_credentials.md](api_credent
 
 ## Status and limits
 
-- **Untested until the first run.** Expect to fix things on the first one or two runs.
+- **Verified:** first fully green run on 2026-10-06 (run 16, commit `a697d88`): Linux package ~102 MB, Windows package ~76 MB. Without `API_ID`/`API_HASH` secrets the builds use test credentials and are not releasable.
 - **Run time:** the first run with cold caches is long, roughly 2 to 5 hours per job, and Windows and Linux can approach the 360 minute limit set on each job. Later runs with warm caches should take well under an hour. Caches are evicted after 7 days of disuse and are limited to 10 GB per repository, which the library caches may exceed.
 - Linux arm64 is not built. It was tried on `ubuntu-24.04-arm` and failed in the Docker library stage: the pinned rnnoise v0.2 includes a missing `os_support.h` from `src/vec_neon.h`. Upstream only builds x86_64, so arm64 would need patches to the upstream library recipes.
 - Library caches (Linux Docker layers; Windows ThirdParty, Libraries, Qt) are restored at the start and saved right after the libraries build, so a failed compile does not force a 1.5-2h library rebuild next run. ccache is saved on every run.
