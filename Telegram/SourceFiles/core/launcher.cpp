@@ -254,12 +254,6 @@ bool CheckPortableVersionFolder() {
 		portable = cExeDir() + u"TelegramForcePortable"_q;
 	} else if (QDir(cExeDir() + u"tdata"_q).exists() || QFile::exists(cExeDir() + u"portable"_q)) {
 		portable = cExeDir();
-#ifdef Q_OS_MAC
-	} else if (QDir(cExeDir() + cExeName() + u"/Contents/Resources/DeGramForcePortable"_q).exists()) {
-		portable = cExeDir() + cExeName() + u"/Contents/Resources/DeGramForcePortable"_q;
-	} else if (QDir(cExeDir() + cExeName() + u"/Contents/Resources/TelegramForcePortable"_q).exists()) {
-		portable = cExeDir() + cExeName() + u"/Contents/Resources/TelegramForcePortable"_q;
-#endif // Q_OS_MAC
 	}
 	if (portable.isEmpty()) {
 		return true;

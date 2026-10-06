@@ -1,8 +1,8 @@
 name: Create Portable Cross-Platform Release
 
-# Compiles DeGram (Release) on Linux, Windows and macOS, then packages it with
+# Compiles DeGram (Release) on Linux and Windows, then packages it with
 # scripts/build_portable*.  Build logic is ported from upstream tdesktop v7.0.9
-# (.github/workflows/linux.yml, win.yml, mac.yml), switched from Debug to Release.
+# (.github/workflows/linux.yml, win.yml), switched from Debug to Release.
 # Untested until the first run.  See docs/CI.md before enabling tag triggers.
 #
 # Repository secrets used: API_ID, API_HASH (see docs/api_credentials.md).
@@ -323,93 +323,10 @@ jobs:
             DeGram-Portable-*.zip
             DeGram-Portable-*.zip.sha256
 
-  build-macos-portable:
-    name: Build macOS Portable
-    runs-on: macos-latest
-    timeout-minutes: 360
-    env:
-      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
-      API_ID: ${{ secrets.API_ID }}
-      API_HASH: ${{ secrets.API_HASH }}
-    steps:
-      - name: Get repository name.
-        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-
-      - name: Clone.
-        uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          path: ${{ env.REPO_NAME }}
-
-      - name: First set up.
-        run: |
-          sudo chown -R `whoami`:admin /usr/local/share
-
-          brew update
-          brew upgrade || true
-          brew install automake libtool meson nasm ninja pkg-config
-
-          # Disable spotlight.
-          sudo mdutil -a -i off
-
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-      - name: Libraries cache.
-        id: cache-libs
-        uses: actions/cache@v6
-        with:
-          path: |
-            Libraries
-            ThirdParty
-          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.OS }}-libs-
-
-      # Upstream passes "skip-release" here because its CI builds Debug only.
-      - name: Libraries.
-        run: |
-          ./$REPO_NAME/Telegram/build/prepare/mac.sh silent
-
-      - name: Free up some disk space.
-        run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
-
-      - name: DeGram build.
-        run: |
-          cd $REPO_NAME/Telegram
-
-          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
-            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
-          else
-            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
-            API="-D TDESKTOP_API_TEST=ON"
-          fi
-
-          ./configure.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Release \
-          -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
-          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
-          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON \
-          $API
-
-          cmake --build ../out --config Release --parallel
-
-      - name: Create macOS Portable Package
-        run: |
-          cd $REPO_NAME
-          test -d out/Release/DeGram.app || { echo "Build error, DeGram.app does not exist."; exit 1; }
-          ./scripts/build_portable_macos.sh "" "out/Release/DeGram.app" "$GITHUB_WORKSPACE"
-
-      - name: Upload macOS Portable Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: macos-portable
-          path: |
-            DeGram-Portable-*.zip
-            DeGram-Portable-*.zip.sha256
-
   publish-release:
     name: Publish Cross-Platform Release
     if: github.event_name == 'workflow_dispatch'
-    needs: [build-linux-portable, build-windows-portable, build-macos-portable]
+    needs: [build-linux-portable, build-windows-portable]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

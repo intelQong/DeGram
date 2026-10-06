@@ -8,7 +8,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/version-7.0.22-6c5ce7?style=flat-square)](changelog.txt)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-informational?style=flat-square)](#build)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows-informational?style=flat-square)](#build)
 
 [Architecture](docs/ARCHITECTURE.md) · [Project context](PROJECT_CONTEXT.md)
 
@@ -18,7 +18,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 DeGram is built on [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop), which is itself built on [Telegram Desktop](https://github.com/telegramdesktop/tdesktop). It keeps AyuGram's message-history and ghost-mode features and adds a portable layout, a duress/panic wipe, and client-side restriction bypasses.
 
-> **Status:** there are no prebuilt releases yet. CI now compiles Release builds (Linux x86_64, Windows x64, macOS) and packages them, but the workflow is untested until its first run (see [docs/CI.md](docs/CI.md)). Build from source for now.
+> **Status:** there are no prebuilt releases yet. CI now compiles Release builds (Linux x86_64, Windows x64) and packages them, but the workflow is untested until its first run (see [docs/CI.md](docs/CI.md)). Build from source for now.
 
 ## Features
 
@@ -63,7 +63,6 @@ At startup, `CheckPortableVersionFolder()` in `core/launcher.cpp` uses the first
 1. `DeGramForcePortable/` next to the executable
 2. `TelegramForcePortable/` next to the executable (upstream-compatible)
 3. The executable's own folder, if it contains `tdata/` or a file named `portable`
-4. On macOS only: `DeGram.app/Contents/Resources/{DeGram,Telegram}ForcePortable/`
 
 If nothing matches, DeGram uses the normal per-user data directory.
 
@@ -71,7 +70,6 @@ The packaging scripts create `DeGramForcePortable/` for you:
 
 ```bash
 ./scripts/build_portable.sh  "" x86_64 out/Release/DeGram      dist/   # -> DeGram-Portable-<ver>-x86_64.tar.xz
-./scripts/build_portable_macos.sh "" out/Release/DeGram.app       dist/   # -> DeGram-Portable-<ver>-macOS.zip
 pwsh ./scripts/build_portable_windows.ps1 -OutputDir dist                 # -> DeGram-Portable-<ver>-Windows-x64.zip
 ```
 
@@ -83,7 +81,6 @@ DeGram builds the same way as Telegram Desktop (C++20, Qt 6, CMake). The CMake t
 
 - [Linux](docs/building-linux.md) (Docker: `Telegram/build/docker/centos_env/build_debug.sh`)
 - [Windows](docs/building-win.md)
-- [macOS](docs/building-mac.md)
 - [API credentials](docs/api_credentials.md)
 
 ```bash

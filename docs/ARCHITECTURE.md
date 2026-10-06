@@ -22,7 +22,6 @@ flowchart LR
 1. `<exeDir>/DeGramForcePortable`
 2. `<exeDir>/TelegramForcePortable`
 3. `<exeDir>` itself, if it contains `tdata/` or a file named `portable`
-4. macOS only: `DeGram.app/Contents/Resources/{DeGram,Telegram}ForcePortable`
 
 If none match, the normal per-user directory is used. The process current directory is then set to the working directory (`QDir::setCurrent` in `logs.cpp`). This matters because the message database path is relative (below). Kangram support was removed.
 

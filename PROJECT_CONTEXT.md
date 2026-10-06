@@ -27,7 +27,7 @@ Fork map for agents and developers. Coding conventions are in [AGENTS.md](AGENTS
 | `Telegram/SourceFiles/window/window_main_menu.cpp` | Drawer: DeGram Preferences, Kill the App |
 | `Telegram/SourceFiles/data/data_{channel,chat,user,story}.cpp` | Restriction bypass |
 | `Telegram/build/` | `set_version.py`, `version`, Docker build env |
-| `scripts/` | `build_portable.sh`, `build_portable_macos.sh`, `build_portable_windows.ps1` |
+| `scripts/` | `build_portable.sh`, `build_portable_windows.ps1` |
 | `.github/workflows/release.yml` | Manual compile and packaging workflow ([docs/CI.md](docs/CI.md)) |
 | `docs/` | Architecture, CI, maintenance log, build guides |
 
@@ -48,7 +48,7 @@ Fork map for agents and developers. Coding conventions are in [AGENTS.md](AGENTS
 
 ## Commands
 
-Build (see [docs/building-linux.md](docs/building-linux.md), [building-win](docs/building-win.md), [building-mac](docs/building-mac.md)):
+Build (see [docs/building-linux.md](docs/building-linux.md), [building-win](docs/building-win.md)):
 
 ```bash
 cmake --build out --config Debug --target Telegram
@@ -58,7 +58,6 @@ Package (empty version = read `Telegram/build/version`; each script exits 1 if t
 
 ```bash
 ./scripts/build_portable.sh [VERSION] [ARCH] [BINARY] [OUTDIR]
-./scripts/build_portable_macos.sh [VERSION] [APP] [OUTDIR]
 pwsh ./scripts/build_portable_windows.ps1 -Version X -BinaryPath P -OutputDir D
 ```
 
@@ -72,6 +71,6 @@ cd Telegram/build && python3 set_version.py X.Y.Z
 
 This updates `build/version`, `core/version.h`, `winrc/*.rc` and the AppX manifest. `scripts/bump_version.py` and the pre-commit hook script no longer exist.
 
-Release: Actions > "Create Portable Cross-Platform Release" > Run workflow. It creates a draft release `v<version>`. It compiles Release builds (Linux x86_64, Windows x64, macOS) and packages them. It is untested until its first run; see [docs/CI.md](docs/CI.md).
+Release: Actions > "Create Portable Cross-Platform Release" > Run workflow. It creates a draft release `v<version>`. It compiles Release builds (Linux x86_64, Windows x64). macOS is not supported and packages them. It is untested until its first run; see [docs/CI.md](docs/CI.md).
 
 AGENTS.md says not to compile in agent sessions.
