@@ -1,171 +1,93 @@
-# DeGram Desktop — Technical Architecture
+# Architecture
 
-This document provides deep technical details on the C++ subsystems, MTProto protocol hooks, local database persistence, portable directory resolution, and emergency wipe routines in **DeGram Desktop**.
+How the DeGram-specific parts work. Paths are relative to `Telegram/SourceFiles/` unless noted. For build and usage, see the [README](../README.md); for the fork map, see [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md).
 
----
+## Overview
 
-## 1. Subsystem Architecture Overview
+DeGram is Telegram Desktop plus AyuGram's `ayu/` module, with a few DeGram changes in `core/`, `window/` and `data/`. There is no separate process or plugin layer: everything runs inside the normal client.
 
 ```mermaid
-graph TD
-    subgraph UI [User Interface Layer]
-        UI_Lock[PasscodeLockWidget]
-        UI_History[HistoryView::Element]
-        UI_Settings[DeGram Settings Panel]
-        UI_Menu[MainMenu Drawer]
-    end
-
-    subgraph Core [Core Logic & State Management]
-        Settings[AyuSettings / DeGram State]
-        History[History & HistoryItem Graph]
-        PeerData[UserData / ChatData / ChannelData]
-        Launcher[CheckPortableVersionFolder]
-    end
-
-    subgraph Security [Security & Panic Engine]
-        DuressCheck{Duress or >=10 Bad Attempts?}
-        PanicWipe[executePanicWipe]
-        ShredDisk[Recursive DeGramForcePortable/ & SQLite Deletion]
-        ExitProc[std::_Exit 0]
-    end
-
-    subgraph DataLayer [Storage & Protocol Layer]
-        MTP[MTProto Protocol Transport]
-        SQLite[Local SQLite Message Database]
-        TData[Local tdata Storage]
-        Portable[DeGramForcePortable]
-    end
-
-    UI_Lock -->|Passcode Submit| DuressCheck
-    DuressCheck -->|Yes| PanicWipe
-    PanicWipe --> ShredDisk --> ExitProc
-    DuressCheck -->|No| Core
-
-    Launcher -->|Portable Detection| Portable
-    Portable --> TData
-
-    MTP -->|Updates & Messages| History
-    History -->|Deleted/Edited Hooks| SQLite
-    History --> UI_History
-    PeerData -->|allowsForwarding = true| UI_History
+flowchart LR
+    TD[Telegram Desktop core] --> AYU[ayu/ module]
+    AYU --> SET[tdata/ayu_settings.json]
+    AYU --> DB[(tdata/ayudata.db)]
+    LAUNCH[core/launcher.cpp] -->|picks working dir| TD
+    LOCK[window/window_lock_widgets.cpp] -->|KABOOM| WIPE[executePanicWipe]
 ```
 
----
+## Portable resolution
 
-## 2. Portable Directory Resolution Engine
+`CheckPortableVersionFolder()` in `core/launcher.cpp` runs at startup. First match wins:
 
-### Detection Logic (`Telegram/SourceFiles/core/launcher.cpp`)
-On application startup, `Launcher::CheckPortableVersionFolder()` checks whether portable operation is requested or detected:
+1. `<exeDir>/DeGramForcePortable`
+2. `<exeDir>/TelegramForcePortable`
+3. `<exeDir>` itself, if it contains `tdata/` or a file named `portable`
+4. macOS only: `DeGram.app/Contents/Resources/{DeGram,Telegram}ForcePortable`
 
-```cpp
-void Launcher::CheckPortableVersionFolder(const QString &basePath) {
-    const auto portable = basePath + u"DeGramForcePortable"_q;
-    const auto legacyKangram = basePath + u"KangramForcePortable"_q;
-    const auto legacyTelegram = basePath + u"TelegramForcePortable"_q;
-    const auto legacyTdata = basePath + u"tdata"_q;
-    const auto flagFile = basePath + u"portable"_q;
+If none match, the normal per-user directory is used. The process current directory is then set to the working directory (`QDir::setCurrent` in `logs.cpp`). This matters because the message database path is relative (below). Kangram support was removed.
 
-    if (QDir(portable).exists() || QFile::exists(flagFile)
-        || QDir(legacyKangram).exists()
-        || QDir(legacyTelegram).exists()
-        || QDir(legacyTdata).exists()) {
-        cForceWorkingDir(portable);
-    }
-}
-```
+## Message history storage
 
-On **macOS**, `Contents/Resources/DeGramForcePortable` and bundle directory sibling markers are inspected, ensuring self-contained application operation.
+- Database: `tdata/ayudata.db`, SQLite through `sqlite_orm` (`ayu/libs/sqlite/`). The path `./tdata/ayudata.db` is relative to the current directory (`ayu/data/ayu_database.cpp`). There is no file called `ayu_database.db`.
+- API: `ayu/data/messages_storage.{h,cpp}` takes `HistoryItem` objects (`addDeletedMessage`, `addEditedMessage`, `getDeletedMessages`, `getEditedMessages`, `clearDeletedMessages`) and calls the lower-level functions in `ayu/data/ayu_database.{h,cpp}`.
+- UI: `ayu/ui/message_history/history_inner.cpp` reads the stored messages when you open the deleted/edit history views. `ayu/ui/context_menu/context_menu.cpp` has the related menu items.
+- Settings: `tdata/ayu_settings.json`, plain JSON, class `AyuSettings` in `ayu/ayu_settings.{h,cpp}`. `saveDeletedMessages` is one of its flags.
+- Regex filters are stored in the same database (`ayu/features/filters/`).
 
----
+## Restriction bypass
 
-## 3. Anti-Recall & SQLite Storage Engine
+Servers mark protected chats and messages with `noforwards`. DeGram handles this in three places:
 
-### Problem in Official Telegram Desktop
-Official Telegram Desktop streams messages as in-memory `HistoryItem` pointers. When a peer deletes a message, an MTProto `UpdateDeleteMessages` or `UpdateDeleteChannelMessages` update is received, causing `History::applyMessageUpdate()` to destroy the `HistoryItem` and clear it from memory.
+1. **Flag mapping.** The server flag is mapped to a separate `AyuNoForwards` message flag in `history/history_item_helpers.cpp` and `data/data_session.cpp`. `HistoryItem::isAyuNoForwards()` (`history/history_item.cpp`) reads it, so the original restriction is still known.
+2. **Native checks return "allowed".** `allowsForwarding()` returns `true` in `data/data_channel.cpp`, `data/data_chat.cpp` and `data/data_user.cpp`. `Story::forbidsForward()` and `HistoryItem::forbidsForward()` return `false`.
+3. **Re-send instead of forward.** For protected messages, `ayu/features/forward/ayu_forward.cpp` sends a new message with the same content instead of using Telegram's native forward. `isAyuForwardNeeded()` decides when; the context menu in `history/view/history_view_context_menu.cpp` calls it.
 
-### DeGram Solution
-1. **SQLite Storage Backend** (`Telegram/SourceFiles/ayu/data/ayu_database.cpp`):
-   - Maintains a local SQLite database (`ayu_database.db` with WAL mode enabled).
-   - Tables: `messages` (id, peer_id, date, sender_id, text, media_type, is_deleted, edit_history_json).
-2. **Deletion Hook**:
-   - In `History::applyMessageUpdate()`: When a delete packet is received, if `saveDeletedMessages` is enabled, the item is tagged with `ItemFlag::IsLocallyDeleted` instead of being destroyed.
-   - The message view renders a red trash icon or customizable deletion mark (`deletedMark`).
-3. **Edit History**:
-   - Every revision of an edited message is captured before the update overwrites the current text, allowing users to view the complete edit diff.
+## KABOOM
 
----
+Entry point: `PasscodeLockWidget::submit()` in `window/window_lock_widgets.cpp`.
 
-## 4. Panic & Duress Subsystem ("KABOOM" Engine)
+- If `AyuSettings::isDuressPasscode(text)` is true (the typed text matches `duressPasscode` after trimming, and the setting is non-empty), it calls `executePanicWipe()`.
+- On a wrong passcode it increments `cPasscodeBadTries`, then calls `executePanicWipe()` if `AyuSettings::shouldPanicOnBadTries(tries)` is true (`kaboomPinFails > 0` and `tries >= kaboomPinFails`). The default is 10 and it is on by default.
+- `executePanicWipe()` (`ayu/ayu_settings.cpp`) runs `QDir(cWorkingDir() + "tdata").removeRecursively()` and then `std::_Exit(0)`.
 
-### Trigger Conditions:
-1. **Explicit Duress PIN**: User enters the secondary Duress Passcode configured in DeGram Settings.
-2. **Exceeded Bad Tries**: Attacker enters wrong passcodes 10 consecutive times on the lock screen.
-3. **Manual Trigger**: "Execute Panic Wipe Now" button in DeGram Security Settings.
+Limits: files are unlinked, not securely erased. The duress passcode is stored in plain text in `ayu_settings.json`. On Windows, files that are still open may fail to delete. There is no in-app editor; `ayu/ui/settings/settings_ayu.cpp` ("Duress Passcode / KABOOM Wipe") shows the current values and an info box. There is no "Panic Wipe Now" button.
 
-### Execution Routine (`AyuSettings::executePanicWipe()`):
-```cpp
-void AyuSettings::executePanicWipe() {
-    const auto working = cWorkingDir();
+The drawer item "Kill the App" (`window/window_main_menu.cpp`) calls `std::_Exit(0)` directly and does not wipe anything.
 
-    // 1. Recursive wipe of all session and encryption key files
-    const auto tdata = working + u"tdata"_q;
-    QDir(tdata).removeRecursively();
+## Ghost mode
 
-    // 2. Eradicate portable folders if present
-    const auto degramPortable = working + u"DeGramForcePortable"_q;
-    QDir(degramPortable).removeRecursively();
+Settings are per account (`GhostModeAccountSettings` in `ayu/ayu_settings.h`), all off by default:
 
-    const auto telegramPortable = working + u"TelegramForcePortable"_q;
-    QDir(telegramPortable).removeRecursively();
-
-    // 3. Eradicate SQLite anti-recall databases and write-ahead logs
-    for (const auto &base : { u"ayu_database.db"_q, u"ayudata.db"_q }) {
-        const auto dbPath = working + base;
-        QFile::remove(dbPath);
-        QFile::remove(dbPath + u"-wal"_q);
-        QFile::remove(dbPath + u"-shm"_q);
-    }
-
-    // 4. Immediate ungraceful exit (prevents flushing in-memory cache to disk)
-    std::_Exit(0);
-}
-```
-
----
-
-## 5. Restriction Bypass Architecture
-
-### 1. `noforwards` & Protected Media Bypass
-* `ChannelData::allowsForwarding()`: Unconditionally returns `true`.
-* `ChatData::allowsForwarding()`: Unconditionally returns `true`.
-* `UserData::allowsForwarding()`: Unconditionally returns `true`.
-* `Story::forbidsForward()`: Unconditionally returns `false`.
-* `HistoryItem::forbidsForward()`: Unconditionally returns `false`.
-
-### 2. Disappearing / TTL Media Preservation
-* Self-destruction countdowns in `Media::View::OverlayWidget` and `HistoryItem` are bypassed.
-* Destructive read receipts (`messages.readMessageContents`) are suppressed until the user explicitly saves or dismisses the media.
-
----
-
-## 6. Ghost Mode Protocol Suppression
-
-| Protocol RPC | Default Behavior | DeGram Ghost Mode Behavior |
+| Setting | Effect when off | Where it is checked |
 | :--- | :--- | :--- |
-| `messages.readHistory` | Sent automatically when viewport scrolls over message | **Blocked** (Message remains unread for sender; manual read action available) |
-| `messages.setTyping` | Sent continuously when typing | **Blocked** (Sender sees no typing indicator) |
-| `account.updateStatus` | Sent when app is active | **Blocked / Masked** (User appears offline) |
-| `stories.readStories` | Sent when viewing a story | **Blocked** (Anonymous story viewing) |
+| `sendReadMessages` | No read receipts | `apiwrap.cpp`, `api/api_views.cpp`, `api/api_polls.cpp`, `ayu/utils/telegram_helpers.cpp` |
+| `sendReadStories` | No story views | `window/window_controller.cpp` |
+| `sendOnlinePackets` | No online status | `api/api_updates.cpp` |
+| `sendUploadProgress` | No typing/upload status | `api/api_send_progress.cpp` |
+| `sendOfflinePacketAfterOnline` | Sends offline right after online | `ayu/ayu_worker.cpp` |
 
----
+The settings UI is in `ayu/ui/settings/settings_ayu.cpp`; the drawer in `window/window_main_menu.cpp` has a quick toggle.
 
-## 7. Credits & Lineage
+## Other behavior
 
-* **Upstream**: [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) and [Desktop App Toolkit](https://github.com/desktop-app)
-* **Feature Lineage & Inspiration**: [Telegraher](https://github.com/nikitasius/Telegraher) by Nikita S. ([@nikitasius](https://github.com/nikitasius))
-  * **KABOOM Protocol**: Duress PIN shred routine and 10-fail lockscreen trigger
-  * **TTL Media Preservation**: Disabling self-destruction on view-once media
-  * **Restriction Bypass**: Client-side `noforwards` and `restrict_saving_content` overrides
-  * **Multi-Account Scale**: Expanding concurrent account capacity to 100
-  * **Ad Filtering**: Dropping server sponsored messages
+- Sponsored messages are hidden when `disableAds` is on (default): `data/components/sponsored_messages.cpp`.
+- `kMaxAccounts = 100` in `main/main_domain.h`.
+- Streamer mode hides windows from screen capture: `ayu/features/streamer_mode/`.
+- Crash reporting is off by default.
 
+## Network endpoints
+
+Beyond Telegram's own servers:
+
+| Endpoint | Source |
+| :--- | :--- |
+| `update.ayugram.one` | `ayu/utils/rc_manager.cpp` |
+| `api.exteragram.app` | `ayu/utils/rc_manager.cpp` |
+| `cdn.jsdelivr.net/gh/AyuGram/Languages` | `ayu/ayu_lang.cpp` |
+| Google / Yandex translate | Only if selected as the translation provider (`ayu/features/translator/`) |
+
+## Credits
+
+- [Telegram Desktop](https://github.com/telegramdesktop/tdesktop): the base client.
+- [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) by AlexeyZavar and Radolyn: most of `ayu/`. Source headers there read "This is the source code of AyuGram for Desktop, modified for DeGram."
+- [Telegraher](https://github.com/nikitasius/Telegraher) by nikitasius: the ideas behind KABOOM, TTL handling, the restriction bypass, the 100-account limit and ad filtering.
