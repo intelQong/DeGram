@@ -1,24 +1,23 @@
 param(
-    [string]$Version = "7.0.16",
+    [string]$Version = "",
     [string]$BinaryPath = "out\Release\DeGram.exe",
     [string]$OutputDir = "."
 )
 
 $ErrorActionPreference = "Stop"
 
+if (-not $Version) {
+    $versionFile = Join-Path $PSScriptRoot "..\Telegram\build\version"
+    $Version = ((Get-Content $versionFile | Where-Object { $_ -match '^AppVersionStr\s' }) -split '\s+')[1]
+}
+
 Write-Host "==> DeGram Desktop Windows Portable Packager v$Version"
 
 if (-not (Test-Path $BinaryPath)) {
     $candidates = @(
-        $BinaryPath,
         "out\Release\DeGram.exe",
         "out\Debug\DeGram.exe",
-        "out\Release\Telegram.exe",
-        "out\Debug\Telegram.exe",
-        "out\DeGram.exe",
-        "out\Telegram.exe",
-        "out\bin\DeGram.exe",
-        "out\bin\Telegram.exe"
+        "out\DeGram.exe"
     )
     foreach ($cand in $candidates) {
         if (Test-Path $cand) {
@@ -29,12 +28,8 @@ if (-not (Test-Path $BinaryPath)) {
 }
 
 if (-not (Test-Path $BinaryPath)) {
-    Write-Warning "Binary not found at $BinaryPath, creating placeholder for CI staging..."
-    $parentDir = Split-Path -Parent $BinaryPath
-    if ($parentDir -and -not (Test-Path $parentDir)) {
-        New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
-    }
-    Set-Content -Path $BinaryPath -Value "DeGram Desktop Binary"
+    Write-Error "Binary not found at $BinaryPath. Build DeGram first (see docs/building-win.md)."
+    exit 1
 }
 
 $PackageName = "DeGram-Portable-$Version-Windows-x64"
@@ -43,9 +38,6 @@ $PortableDir = Join-Path $TempDir "DeGram"
 
 New-Item -ItemType Directory -Force -Path $PortableDir | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $PortableDir "DeGramForcePortable") | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $PortableDir "TelegramForcePortable") | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $PortableDir "tdata") | Out-Null
-Set-Content -Path (Join-Path $PortableDir "portable") -Value ""
 
 Copy-Item -Path $BinaryPath -Destination (Join-Path $PortableDir "DeGram.exe") -Force
 
@@ -69,20 +61,17 @@ Simply double-click:
 
 PORTABLE STORAGE:
 -----------------
-All user profiles, chats, anti-recall database (SQLite ayudata.db),
-settings, and cached files are stored strictly inside this folder
-(in "DeGramForcePortable" or "tdata").
-No data is written to %APPDATA% or the Windows Registry.
+All user profiles, chats, the deleted-messages database (ayudata.db),
+settings and cache are stored inside the "DeGramForcePortable" folder.
 
 To move your entire DeGram installation, simply copy the "DeGram"
 folder to a USB flash drive or another computer.
 
 DURESS / PANIC WIPE (KABOOM):
 -----------------------------
-If the duress passcode or fail-safe bad attempts wipe is triggered,
-all session data, databases, and keys inside the portable folder
-are completely and recursively wiped, and the process immediately
-terminates.
+Entering the duress passcode, or 10 wrong local passcodes in a row
+(configurable, 0 = off), deletes DeGramForcePortable\tdata and exits.
+Files are deleted, not securely overwritten.
 ========================================================================
 "@
 

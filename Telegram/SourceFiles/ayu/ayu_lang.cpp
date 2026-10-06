@@ -183,11 +183,7 @@ void AyuLanguage::applyLanguageJson(QJsonDocument doc) {
 
 		val = val.replace(qsl("AyuGram"), qsl("DeGram"))
 			.replace(qsl("Ayugram"), qsl("DeGram"))
-			.replace(qsl("ayugram"), qsl("degram"))
-			.replace(qsl("Kangram"), qsl("DeGram"))
-			.replace(qsl("Kamgram"), qsl("DeGram"))
-			.replace(qsl("kangram"), qsl("degram"))
-			.replace(qsl("kamgram"), qsl("degram"));
+			.replace(qsl("ayugram"), qsl("degram"));
 
 		if (key.endsWith("_Android")) {
 			continue;

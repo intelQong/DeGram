@@ -1,3 +1,11 @@
+7.0.22 (06.10.26)
+
+- DeGram: rebrand from AyuGram, portable mode (DeGramForcePortable).
+- DeGram: duress passcode and failed-passcode wipe (KABOOM).
+- DeGram: "Kill the App" drawer action.
+- DeGram: forwarding/saving restrictions bypassed for chats, channels and stories.
+- Based on AyuGram / Telegram Desktop 7.0.9.
+
 7.0.9 (05.08.26)
 
 - Add saving rich messages to HTML and importing them back.

@@ -41,7 +41,7 @@ body:
     attributes:
       label: Version of DeGram Desktop
       description: >
-        **Don't use 'latest'**, specify actual version (e.g. 7.0.16).
+        **Don't use 'latest'**, specify actual version (e.g. 7.0.22).
     validations:
       required: true
   - type: dropdown

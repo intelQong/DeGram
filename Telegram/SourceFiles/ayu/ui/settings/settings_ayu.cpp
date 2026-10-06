@@ -683,15 +683,38 @@ void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.id = u"degram/duress_pin"_q,
 		.title = rpl::single(QString("Duress Passcode / KABOOM Wipe")),
 		.icon = { &st::menuIconPermissions },
-		.label = AyuSettings::getInstance().duressPasscodeValue() | rpl::map([](const QString &val) {
-			return val.isEmpty() ? QString("Enabled on 10 bad tries") : QString("Custom PIN Active");
+		.label = rpl::combine(
+			AyuSettings::getInstance().duressPasscodeValue(),
+			AyuSettings::getInstance().kaboomPinFailsValue()
+		) | rpl::map([](const QString &duress, int fails) {
+			const auto tries = (fails > 0)
+				? QString("Wipe after %1 bad tries").arg(fails)
+				: QString("Bad tries wipe off");
+			return duress.trimmed().isEmpty()
+				? tries
+				: (tries + u", duress PIN set"_q);
 		}),
 		.onClick = [controller = builder.controller()] {
-			controller->show(Ui::MakeConfirmBox({
-				.text = rpl::single(QString("DeGram Duress & Panic Protection is active. Entering your configured duress code or exceeding 10 failed passcode attempts on the lock screen will immediately wipe all session data and exit (KABOOM).")),
-				.confirmed = [] {},
-				.confirmText = tr::lng_box_ok(),
-			}));
+			const auto &settings = AyuSettings::getInstance();
+			const auto fails = settings.kaboomPinFails();
+			const auto trigger = (fails > 0)
+				? u"Triggered by %1 wrong local passcode attempts in a row "
+					"on the lock screen."_q.arg(fails)
+				: u"The failed-attempts trigger is off."_q;
+			const auto duress = settings.duressPasscode().trimmed().isEmpty()
+				? u"No duress passcode is set."_q
+				: u"Entering the duress passcode on the lock screen "
+					"triggers it too."_q;
+			controller->show(Ui::MakeInformBox(
+				u"KABOOM deletes the whole tdata folder (all accounts, "
+				"settings and the deleted-messages database) and exits "
+				"immediately.\n\n"_q
+				+ trigger
+				+ u" "_q
+				+ duress
+				+ u"\n\nThere is no in-app editor yet: change "
+				"\"duressPasscode\" and \"kaboomPinFails\" (0 = off) in "
+				"tdata/ayu_settings.json while DeGram is closed."_q));
 		},
 	});
 }

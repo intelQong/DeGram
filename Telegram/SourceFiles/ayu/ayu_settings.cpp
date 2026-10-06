@@ -1092,24 +1092,9 @@ bool AyuSettings::shouldPanicOnBadTries(int tries) const {
 }
 
 void AyuSettings::executePanicWipe() {
-	const auto working = cWorkingDir();
-	const auto tdata = working + u"tdata"_q;
-	QDir(tdata).removeRecursively();
-
-	QDir(working + u"DeGramForcePortable"_q).removeRecursively();
-	QDir(working + u"KangramForcePortable"_q).removeRecursively();
-	QDir(working + u"TelegramForcePortable"_q).removeRecursively();
-
-	const auto dbPath = working + u"ayu_database.db"_q;
-	QFile::remove(dbPath);
-	QFile::remove(dbPath + u"-wal"_q);
-	QFile::remove(dbPath + u"-shm"_q);
-
-	const auto dbDataPath = working + u"tdata/ayudata.db"_q;
-	QFile::remove(dbDataPath);
-	QFile::remove(dbDataPath + u"-wal"_q);
-	QFile::remove(dbDataPath + u"-shm"_q);
-
+	// tdata holds every account, ayu_settings.json and ayudata.db (+ -wal/-shm).
+	// Files are unlinked, not overwritten, so this is not a secure erase.
+	QDir(cWorkingDir() + u"tdata"_q).removeRecursively();
 	std::_Exit(0);
 }
 
