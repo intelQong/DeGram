@@ -38,6 +38,7 @@ Not compiled, per AGENTS.md. `scripts/build_portable.sh` was tested manually.
 
 ## Open issues / next steps
 
+- Fixed by CI: `Resources/qrc/ayu/ayu.qrc` still listed the 11 app icons deleted in "remove all app icons except default blue", which broke the Linux compile; stale entries removed and `appIcon` from old settings now falls back to `default`.
 - CI first run (2026-10-06): Windows failed in MSYS2 setup (fixed by porting upstream's UCRT packages); Linux arm64 failed building rnnoise NEON code and was dropped. Linux x86_64 and macOS results pending ([CI.md](CI.md)).
 - The PBKDF2 hash of a short PIN is brute-forceable offline; use a longer duress passcode.
 - The wipe overwrite is best effort on SSDs and copy-on-write filesystems.

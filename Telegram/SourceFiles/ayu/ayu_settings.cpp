@@ -1335,7 +1335,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._showChannelReactions = j.value("showChannelReactions", defaults._showChannelReactions.current());
 	s._showGroupReactions = j.value("showGroupReactions", defaults._showGroupReactions.current());
 	s._showPrivateChatReactions = j.value("showPrivateChatReactions", defaults._showPrivateChatReactions.current());
-	s._appIcon = j.value("appIcon", defaults._appIcon.current());
+	// DeGram ships only the default icon; older settings may name a removed one.
+	s._appIcon = defaults._appIcon.current();
 	s._simpleQuotesAndReplies = j.value("simpleQuotesAndReplies", defaults._simpleQuotesAndReplies.current());
 	s._hideFastShare = j.value("hideFastShare", defaults._hideFastShare.current());
 	s._replaceBottomInfoWithIcons = j.value("replaceBottomInfoWithIcons", defaults._replaceBottomInfoWithIcons.current());
