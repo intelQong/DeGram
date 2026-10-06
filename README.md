@@ -18,7 +18,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 DeGram is built on [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop), which is itself built on [Telegram Desktop](https://github.com/telegramdesktop/tdesktop). It keeps AyuGram's message-history and ghost-mode features and adds a portable layout, a duress/panic wipe, and client-side restriction bypasses.
 
-> **Status:** there are no prebuilt releases yet. CI now compiles Release builds (Linux x86_64 and arm64, Windows x64, macOS) and packages them, but the workflow is untested until its first run (see [docs/CI.md](docs/CI.md)). Build from source for now.
+> **Status:** there are no prebuilt releases yet. CI now compiles Release builds (Linux x86_64, Windows x64, macOS) and packages them, but the workflow is untested until its first run (see [docs/CI.md](docs/CI.md)). Build from source for now.
 
 ## Features
 

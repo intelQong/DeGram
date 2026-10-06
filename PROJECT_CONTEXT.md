@@ -72,6 +72,6 @@ cd Telegram/build && python3 set_version.py X.Y.Z
 
 This updates `build/version`, `core/version.h`, `winrc/*.rc` and the AppX manifest. `scripts/bump_version.py` and the pre-commit hook script no longer exist.
 
-Release: Actions > "Create Portable Cross-Platform Release" > Run workflow. It creates a draft release `v<version>`. It compiles Release builds (Linux x86_64 and arm64, Windows x64, macOS) and packages them. It is untested until its first run; see [docs/CI.md](docs/CI.md).
+Release: Actions > "Create Portable Cross-Platform Release" > Run workflow. It creates a draft release `v<version>`. It compiles Release builds (Linux x86_64, Windows x64, macOS) and packages them. It is untested until its first run; see [docs/CI.md](docs/CI.md).
 
 AGENTS.md says not to compile in agent sessions.

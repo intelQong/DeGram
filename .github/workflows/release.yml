@@ -31,10 +31,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # arm64 is not supported: upstream only builds x86_64, and the
+          # pinned rnnoise v0.2 fails to compile its NEON code (docs/CI.md).
           - arch: x86_64
             runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
     env:
       IMAGE_TAG: degram:centos_env
       API_ID: ${{ secrets.API_ID }}
