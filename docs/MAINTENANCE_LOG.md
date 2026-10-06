@@ -40,6 +40,7 @@ Not compiled, per AGENTS.md. `scripts/build_portable.sh` was tested manually.
 
 - Fixed by CI: `Resources/qrc/ayu/ayu.qrc` still listed the 11 app icons deleted in "remove all app icons except default blue", which broke the Linux compile; stale entries removed and `appIcon` from old settings now falls back to `default`.
 - Fixed by CI: new KABOOM strings used a `degram_` prefix, which AyuGram's lang codegen ignores on Linux (it only scans `lng_`/`ayu_`); renamed to `ayu_Kaboom*`, and "Kill the App" reuses the existing `ayu_KillApp`. The KABOOM box also put a `PasswordInput` (not an `RpWidget`) straight into `GenericBox::addRow`; it is now wrapped in a container.
+- CI Windows: after the code fixes, the compile hit disk limits (output ~31 GB; moved to D:) and then memory limits (C1060); added a page file on D: and `--parallel 2`.
 - CI first run (2026-10-06): Windows failed in MSYS2 setup (fixed by porting upstream's UCRT packages); Linux arm64 failed building rnnoise NEON code and was dropped. macOS dropped by owner decision (job, packaging script, launcher `.app` portable check and macOS docs removed). Linux x86_64 and Windows results pending ([CI.md](CI.md)).
 - The PBKDF2 hash of a short PIN is brute-forceable offline; use a longer duress passcode.
 - The wipe overwrite is best effort on SSDs and copy-on-write filesystems.

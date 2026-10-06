@@ -366,6 +366,15 @@ jobs:
             Write-Host "Build output stays on C:"
           }
 
+      # 16 GB of RAM is not enough for a parallel Release compile
+      # (C1060 "compiler is out of heap space", MSBuild OutOfMemory).
+      - name: Configure page file.
+        uses: al-cheb/configure-pagefile-action@v1.4
+        with:
+          minimum-size: 16GB
+          maximum-size: 32GB
+          disk-root: "D:"
+
       - name: Read API credentials.
         shell: bash
         run: |
@@ -389,7 +398,7 @@ jobs:
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
           if errorlevel 1 exit /b 1
 
-          cmake --build ..\out --config Release --parallel
+          cmake --build ..\out --config Release --parallel 2
 
       - name: Disk usage on failure.
         if: failure()
