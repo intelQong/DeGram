@@ -713,10 +713,10 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 				return;
 			}
 		}
-		auto &settings = AyuSettings::getInstance();
-		settings.setKaboomPinFails(fails);
+		auto &ayu = AyuSettings::getInstance();
+		ayu.setKaboomPinFails(fails);
 		if (!passcode.trimmed().isEmpty()) {
-			settings.setDuressPasscode(passcode);
+			ayu.setDuressPasscode(passcode);
 		}
 		box->closeBox();
 	};
@@ -755,14 +755,14 @@ void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 			AyuSettings::getInstance().hasDuressPasscodeValue(),
 			AyuSettings::getInstance().kaboomPinFailsValue()
 		) | rpl::map([](bool duress, int fails) {
+			// Plain strings joined here: new {tags} would need codegen support.
 			const auto tries = (fails > 0)
-				? tr::ayu_KaboomLabelTries(
-					tr::now,
-					lt_tries,
-					QString::number(fails))
+				? (tr::ayu_KaboomLabelTries(tr::now)
+					+ u": "_q
+					+ QString::number(fails))
 				: tr::ayu_KaboomLabelOff(tr::now);
 			return duress
-				? tr::ayu_KaboomLabelDuress(tr::now, lt_status, tries)
+				? (tries + u", "_q + tr::ayu_KaboomLabelDuress(tr::now))
 				: tries;
 		}),
 		.onClick = [controller = builder.controller()] {

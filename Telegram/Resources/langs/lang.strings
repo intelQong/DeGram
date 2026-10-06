@@ -9037,9 +9037,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ayu_KaboomHeader" = "Security & Duress (KABOOM)";
 "ayu_KaboomButton" = "Duress Passcode / KABOOM Wipe";
-"ayu_KaboomLabelTries" = "Wipe after {tries} bad tries";
+"ayu_KaboomLabelTries" = "Wipe after bad tries";
 "ayu_KaboomLabelOff" = "Bad tries wipe off";
-"ayu_KaboomLabelDuress" = "{status}, duress passcode set";
+"ayu_KaboomLabelDuress" = "duress passcode set";
 "ayu_KaboomTitle" = "KABOOM";
 "ayu_KaboomAbout" = "KABOOM overwrites and deletes the whole tdata folder (all accounts, settings and the deleted-messages database) and exits immediately. It runs from the local passcode lock screen.";
 "ayu_KaboomTries" = "Wipe after this many wrong passcodes (0 = off)";
