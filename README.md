@@ -10,7 +10,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 [![Version](https://img.shields.io/badge/version-7.0.22-6c5ce7?style=flat-square)](changelog.txt)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-informational?style=flat-square)](#build)
 
-[English](README.md) · [Русский](README-RU.md) · [Architecture](docs/ARCHITECTURE.md) · [Project context](PROJECT_CONTEXT.md)
+[Architecture](docs/ARCHITECTURE.md) · [Project context](PROJECT_CONTEXT.md)
 
 </div>
 
