@@ -282,6 +282,35 @@ jobs:
         shell: bash
         run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
 
+      # Release objects plus Release libraries outgrow the free runner's disk
+      # (upstream builds Debug on a larger Depot runner). Drop toolchains the
+      # build never uses; Python, CMake, Git and Visual Studio are kept.
+      - name: Free up more disk space.
+        shell: pwsh
+        run: |
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          $paths = @(
+            'C:\Android',
+            "$env:AGENT_TOOLSDIRECTORY\CodeQL",
+            "$env:AGENT_TOOLSDIRECTORY\Java_Temurin-Hotspot_jdk",
+            "$env:AGENT_TOOLSDIRECTORY\go",
+            "$env:AGENT_TOOLSDIRECTORY\PyPy",
+            "$env:AGENT_TOOLSDIRECTORY\Ruby",
+            'C:\Program Files\Java',
+            'C:\ghcup',
+            'C:\Julia',
+            'C:\Miniconda',
+            'C:\SeleniumWebDrivers',
+            'C:\rtools45'
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              Write-Host "Removing $path"
+              Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+
       - name: Read API credentials.
         shell: bash
         run: |

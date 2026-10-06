@@ -679,12 +679,21 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 		st::defaultInputField,
 		tr::degram_KaboomTries(),
 		QString::number(settings.kaboomPinFails())));
-	const auto duress = box->addRow(object_ptr<Ui::PasswordInput>(
-		box,
+	// PasswordInput is not an RpWidget, so it can't be a box row directly.
+	auto duressWrap = object_ptr<Ui::RpWidget>(box);
+	duressWrap->resize(duressWrap->width(), st::defaultInputField.heightMin);
+	const auto duress = Ui::CreateChild<Ui::PasswordInput>(
+		duressWrap.data(),
 		st::defaultInputField,
 		hasDuress
 			? tr::degram_KaboomDuressChange()
-			: tr::degram_KaboomDuressNew()));
+			: tr::degram_KaboomDuressNew());
+	duressWrap->widthValue(
+	) | rpl::on_next([=](int width) {
+		duress->resize(width, duress->height());
+		duress->moveToLeft(0, 0);
+	}, duressWrap->lifetime());
+	box->addRow(std::move(duressWrap));
 	box->setFocusCallback([=] { tries->setFocusFast(); });
 
 	const auto save = [=] {
