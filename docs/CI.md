@@ -4,7 +4,7 @@
 
 The only workflow is `.github/workflows/release.yml` ("Create Portable Cross-Platform Release").
 
-- **Trigger:** `workflow_dispatch` only. No tag or push triggers.
+- **Triggers:** `workflow_dispatch` (build + draft release) and `pull_request` to `dev`/`main` (build and package only; the publish job is skipped). Docs-only changes don't trigger PR builds. A newer push cancels the running PR build.
 - **Jobs:** build and package Linux (x86_64 and arm64), Windows x64 and macOS using `scripts/build_portable.sh`, `scripts/build_portable_windows.ps1` and `scripts/build_portable_macos.sh`.
 - **Publish job:** reads the version from `Telegram/build/version`, then creates a **draft** GitHub release tagged `v<version>` with the packages and `SHA256SUMS.txt`.
 
