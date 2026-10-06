@@ -4,7 +4,7 @@
 
 The only workflow is `.github/workflows/release.yml` ("Create Portable Cross-Platform Release").
 
-- **Triggers:** `workflow_dispatch` (build + draft release) and `pull_request` to `dev`/`main` (build and package only; the publish job is skipped). Docs-only changes don't trigger PR builds. A newer push cancels the running PR build.
+- **Triggers:** `workflow_dispatch` (build + draft release) and `pull_request` to `dev`/`main` (build and package only; the publish job is skipped). Docs-only changes don't trigger PR builds.
 - **Jobs:** build and package Linux x86_64, Windows x64 and macOS using `scripts/build_portable.sh`, `scripts/build_portable_windows.ps1` and `scripts/build_portable_macos.sh`.
 - **Publish job:** reads the version from `Telegram/build/version`, then creates a **draft** GitHub release tagged `v<version>` with the packages and `SHA256SUMS.txt`.
 
@@ -28,6 +28,7 @@ Repository secrets `API_ID` and `API_HASH` (see [api_credentials.md](api_credent
 - **Untested until the first run.** Expect to fix things on the first one or two runs.
 - **Run time:** the first run with cold caches is long, roughly 2 to 5 hours per job, and Windows and Linux can approach the 360 minute limit set on each job. Later runs with warm caches should take well under an hour. Caches are evicted after 7 days of disuse and are limited to 10 GB per repository, which the library caches may exceed.
 - Linux arm64 is not built. It was tried on `ubuntu-24.04-arm` and failed in the Docker library stage: the pinned rnnoise v0.2 includes a missing `os_support.h` from `src/vec_neon.h`. Upstream only builds x86_64, so arm64 would need patches to the upstream library recipes.
+- Windows installs the ATL component for the MSVC 14.44 toolset before building (breakpad needs `atlbase.h`). Upstream builds on a Depot runner that ships it; the free `windows-latest` image does not.
 - Windows library prep uses MSYS2 UCRT packages (`mingw-w64-ucrt-x86_64-*`), ported from upstream tdesktop `dev`: MSYS2 dropped `mingw-w64-x86_64-diffutils`, which broke the old recipe.
 - The ccache is only saved on the default branch.
 - No LTO on Linux, unlike an official release build.

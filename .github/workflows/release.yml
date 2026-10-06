@@ -18,10 +18,6 @@ on:
       - '**.md'
       - 'docs/**'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build-linux-portable:
     name: Build Linux Portable (${{ matrix.arch }})
@@ -205,6 +201,33 @@ jobs:
           echo "Configurate git for cherry-picks."
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
+
+      # Upstream builds on a Depot runner that ships ATL. On the free
+      # windows-latest image the 14.44 toolset has no ATL, which breakpad needs.
+      - name: Install ATL for MSVC 14.44.
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          $vs = & $vswhere -latest -products * -property installationPath
+          Write-Host "Visual Studio: $vs"
+          foreach ($component in @(
+              'Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL',
+              'Microsoft.VisualStudio.Component.VC.ATL')) {
+            $p = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList `
+              'modify','--installPath',"`"$vs`"",'--add',$component, `
+              '--quiet','--norestart','--nocache'
+            Write-Host "$component -> exit code $($p.ExitCode)"
+          }
+          $atl = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory -Filter '14.44*' |
+            ForEach-Object { Join-Path $_.FullName 'atlmfc\include\atlbase.h' } |
+            Where-Object { Test-Path $_ }
+          if (-not $atl) {
+            Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | ForEach-Object { Write-Host "Toolset: $($_.Name)" }
+            Write-Error "atlbase.h not found for MSVC 14.44 after installing ATL."
+            exit 1
+          }
+          Write-Host "ATL found: $atl"
 
       - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt.
