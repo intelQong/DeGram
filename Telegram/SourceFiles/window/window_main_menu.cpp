@@ -929,7 +929,7 @@ void MainMenu::setupMenu() {
 	}
 
 	addAction(
-		rpl::single(QString("Kill the App")),
+		tr::degram_KillApp(),
 		{&st::menuIconLock}
 	)->setClickedCallback([=] {
 		std::_Exit(0);

@@ -20,6 +20,7 @@
 #include "main/main_session.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
+#include "storage/storage_domain.h"
 #include "styles/style_ayu_icons.h"
 #include "styles/style_ayu_styles.h"
 #include "styles/style_chat.h"
@@ -30,11 +31,13 @@
 #include "styles/style_window.h"
 #include "ui/painter.h"
 #include "ui/vertical_list.h"
-#include "ui/boxes/confirm_box.h"
 #include "ui/boxes/single_choice_box.h"
 #include "ui/text/text.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/fields/input_field.h"
+#include "ui/widgets/fields/password_input.h"
+#include "ui/widgets/labels.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/menu/menu_item_base.h"
 #include "ui/wrap/vertical_layout.h"
@@ -662,6 +665,62 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 }
 
+void KaboomBox(not_null<Ui::GenericBox*> box) {
+	const auto &settings = AyuSettings::getInstance();
+	const auto hasDuress = settings.hasDuressPasscode();
+
+	box->setTitle(tr::degram_KaboomTitle());
+	box->addRow(object_ptr<Ui::FlatLabel>(
+		box,
+		tr::degram_KaboomAbout(),
+		st::boxLabel));
+	const auto tries = box->addRow(object_ptr<Ui::InputField>(
+		box,
+		st::defaultInputField,
+		tr::degram_KaboomTries(),
+		QString::number(settings.kaboomPinFails())));
+	const auto duress = box->addRow(object_ptr<Ui::PasswordInput>(
+		box,
+		st::defaultInputField,
+		hasDuress
+			? tr::degram_KaboomDuressChange()
+			: tr::degram_KaboomDuressNew()));
+	box->setFocusCallback([=] { tries->setFocusFast(); });
+
+	const auto save = [=] {
+		auto ok = false;
+		const auto fails = tries->getLastText().trimmed().toInt(&ok);
+		if (!ok || fails < 0 || fails > AyuSettings::kMaxKaboomPinFails) {
+			tries->showError();
+			return;
+		}
+		const auto passcode = duress->text();
+		if (!passcode.trimmed().isEmpty()) {
+			const auto &local = Core::App().domain().local();
+			if (local.hasLocalPasscode()
+				&& local.checkPasscode(passcode.toUtf8())) {
+				duress->showError();
+				box->showToast(tr::degram_KaboomDuressSame(tr::now));
+				return;
+			}
+		}
+		auto &settings = AyuSettings::getInstance();
+		settings.setKaboomPinFails(fails);
+		if (!passcode.trimmed().isEmpty()) {
+			settings.setDuressPasscode(passcode);
+		}
+		box->closeBox();
+	};
+	box->addButton(tr::lng_settings_save(), save);
+	box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+	if (hasDuress) {
+		box->addLeftButton(tr::degram_KaboomDuressRemove(), [=] {
+			AyuSettings::getInstance().setDuressPasscode(QString());
+			box->closeBox();
+		});
+	}
+}
+
 void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::ayu_MessageSavingOtherHeader());
 
@@ -678,43 +737,27 @@ void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.setter = &AyuSettings::setDisableAds,
 	});
 
-	builder.addSubsectionTitle(rpl::single(QString("Security & Duress (KABOOM)")));
+	builder.addSubsectionTitle(tr::degram_KaboomHeader());
 	builder.addButton({
 		.id = u"degram/duress_pin"_q,
-		.title = rpl::single(QString("Duress Passcode / KABOOM Wipe")),
+		.title = tr::degram_KaboomButton(),
 		.icon = { &st::menuIconPermissions },
 		.label = rpl::combine(
-			AyuSettings::getInstance().duressPasscodeValue(),
+			AyuSettings::getInstance().hasDuressPasscodeValue(),
 			AyuSettings::getInstance().kaboomPinFailsValue()
-		) | rpl::map([](const QString &duress, int fails) {
+		) | rpl::map([](bool duress, int fails) {
 			const auto tries = (fails > 0)
-				? QString("Wipe after %1 bad tries").arg(fails)
-				: QString("Bad tries wipe off");
-			return duress.trimmed().isEmpty()
-				? tries
-				: (tries + u", duress PIN set"_q);
+				? tr::degram_KaboomLabelTries(
+					tr::now,
+					lt_tries,
+					QString::number(fails))
+				: tr::degram_KaboomLabelOff(tr::now);
+			return duress
+				? tr::degram_KaboomLabelDuress(tr::now, lt_status, tries)
+				: tries;
 		}),
 		.onClick = [controller = builder.controller()] {
-			const auto &settings = AyuSettings::getInstance();
-			const auto fails = settings.kaboomPinFails();
-			const auto trigger = (fails > 0)
-				? u"Triggered by %1 wrong local passcode attempts in a row "
-					"on the lock screen."_q.arg(fails)
-				: u"The failed-attempts trigger is off."_q;
-			const auto duress = settings.duressPasscode().trimmed().isEmpty()
-				? u"No duress passcode is set."_q
-				: u"Entering the duress passcode on the lock screen "
-					"triggers it too."_q;
-			controller->show(Ui::MakeInformBox(
-				u"KABOOM deletes the whole tdata folder (all accounts, "
-				"settings and the deleted-messages database) and exits "
-				"immediately.\n\n"_q
-				+ trigger
-				+ u" "_q
-				+ duress
-				+ u"\n\nThere is no in-app editor yet: change "
-				"\"duressPasscode\" and \"kaboomPinFails\" (0 = off) in "
-				"tdata/ayu_settings.json while DeGram is closed."_q));
+			controller->show(Box(KaboomBox));
 		},
 	});
 }

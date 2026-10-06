@@ -31,7 +31,7 @@ If none match, the normal per-user directory is used. The process current direct
 - Database: `tdata/ayudata.db`, SQLite through `sqlite_orm` (`ayu/libs/sqlite/`). The path `./tdata/ayudata.db` is relative to the current directory (`ayu/data/ayu_database.cpp`). There is no file called `ayu_database.db`.
 - API: `ayu/data/messages_storage.{h,cpp}` takes `HistoryItem` objects (`addDeletedMessage`, `addEditedMessage`, `getDeletedMessages`, `getEditedMessages`, `clearDeletedMessages`) and calls the lower-level functions in `ayu/data/ayu_database.{h,cpp}`.
 - UI: `ayu/ui/message_history/history_inner.cpp` reads the stored messages when you open the deleted/edit history views. `ayu/ui/context_menu/context_menu.cpp` has the related menu items.
-- Settings: `tdata/ayu_settings.json`, plain JSON, class `AyuSettings` in `ayu/ayu_settings.{h,cpp}`. `saveDeletedMessages` is one of its flags.
+- Settings: `tdata/ayu_settings.json`, JSON, class `AyuSettings` in `ayu/ayu_settings.{h,cpp}`. `saveDeletedMessages` is one of its flags.
 - Regex filters are stored in the same database (`ayu/features/filters/`).
 
 ## Restriction bypass
@@ -46,11 +46,15 @@ Servers mark protected chats and messages with `noforwards`. DeGram handles this
 
 Entry point: `PasscodeLockWidget::submit()` in `window/window_lock_widgets.cpp`.
 
-- If `AyuSettings::isDuressPasscode(text)` is true (the typed text matches `duressPasscode` after trimming, and the setting is non-empty), it calls `executePanicWipe()`.
+- If `AyuSettings::isDuressPasscode(text)` is true (the typed text, after trimming, hashes to the stored `duressPasscodeHash` with `duressPasscodeSalt`; false if none is set), it calls `executePanicWipe()`.
 - On a wrong passcode it increments `cPasscodeBadTries`, then calls `executePanicWipe()` if `AyuSettings::shouldPanicOnBadTries(tries)` is true (`kaboomPinFails > 0` and `tries >= kaboomPinFails`). The default is 10 and it is on by default.
-- `executePanicWipe()` (`ayu/ayu_settings.cpp`) runs `QDir(cWorkingDir() + "tdata").removeRecursively()` and then `std::_Exit(0)`.
+- `executePanicWipe()` (`ayu/ayu_settings.cpp`) overwrites every file in `tdata` with zeros (skipping symlinks and `user_data*/`, `emoji/`, `dictionaries/`; the media cache is encrypted with keys that are zeroed), runs `QDir(cWorkingDir() + "tdata").removeRecursively()` and then `std::_Exit(0)`.
 
-Limits: files are unlinked, not securely erased. The duress passcode is stored in plain text in `ayu_settings.json`. On Windows, files that are still open may fail to delete. There is no in-app editor; `ayu/ui/settings/settings_ayu.cpp` ("Duress Passcode / KABOOM Wipe") shows the current values and an info box. There is no "Panic Wipe Now" button.
+Duress passcode storage: `duressPasscodeHash` (PBKDF2-SHA512, 100000 iterations, base64) and `duressPasscodeSalt` (32 random bytes, base64) in `ayu_settings.json`. A legacy plain `duressPasscode` key is migrated to the hash on load and removed. A short numeric PIN can still be brute-forced offline from the hash.
+
+In-app editor: `KaboomBox` in `ayu/ui/settings/settings_ayu.cpp`, opened from the "Duress Passcode / KABOOM Wipe" row (Settings > DeGram Preferences > DeGram). It sets the number of wrong passcodes before wipe (0 = off, max 100, default 10, on by default) and the duress passcode (empty field keeps the current one; "Remove duress" clears it). A duress passcode equal to the local passcode is rejected. The row shows "Wipe after N bad tries" or "Bad tries wipe off", plus ", duress passcode set". The box and "Kill the App" strings are `degram_*` keys in `Telegram/Resources/langs/lang.strings`.
+
+Limits: the overwrite is best effort. SSDs (wear levelling) and copy-on-write or journaling filesystems may keep old copies, so it is not a guaranteed secure erase. On Windows, files that are still open may fail to delete. There is no "Panic Wipe Now" button.
 
 The drawer item "Kill the App" (`window/window_main_menu.cpp`) calls `std::_Exit(0)` directly and does not wipe anything.
 
@@ -77,14 +81,7 @@ The settings UI is in `ayu/ui/settings/settings_ayu.cpp`; the drawer in `window/
 
 ## Network endpoints
 
-Beyond Telegram's own servers:
-
-| Endpoint | Source |
-| :--- | :--- |
-| `update.ayugram.one` | `ayu/utils/rc_manager.cpp` |
-| `api.exteragram.app` | `ayu/utils/rc_manager.cpp` |
-| `cdn.jsdelivr.net/gh/AyuGram/Languages` | `ayu/ayu_lang.cpp` |
-| Google / Yandex translate | Only if selected as the translation provider (`ayu/features/translator/`) |
+Only Telegram's own servers, plus Google / Yandex translate if selected as the translation provider (`ayu/features/translator/`). `ayu/ayu_lang.{cpp,h}` is removed: AyuGram-specific strings use the built-in English from `lang.strings` in every language. `RCManager` (`ayu/utils/rc_manager.{h,cpp}`) is offline-only: built-in developer and channel lists, no supporter badges, no requests to `update.ayugram.one` or `api.exteragram.app`.
 
 ## Credits
 

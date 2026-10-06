@@ -1,9 +1,13 @@
 name: Create Portable Cross-Platform Release
 
-# This workflow only PACKAGES binaries; it does not compile DeGram.
-# Each job fails until a real build step producing out/Release/DeGram
-# (DeGram.exe / DeGram.app) is added before packaging.
-# See docs/CI.md before enabling tag-triggered releases again.
+# Compiles DeGram (Release) on Linux, Windows and macOS, then packages it with
+# scripts/build_portable*.  Build logic is ported from upstream tdesktop v7.0.9
+# (.github/workflows/linux.yml, win.yml, mac.yml), switched from Debug to Release.
+# Untested until the first run.  See docs/CI.md before enabling tag triggers.
+#
+# Repository secrets used: API_ID, API_HASH (see docs/api_credentials.md).
+# When they are not set the build falls back to the test API credentials
+# (TDESKTOP_API_TEST), like upstream CI does.
 
 on:
   workflow_dispatch:
@@ -12,30 +16,134 @@ jobs:
   build-linux-portable:
     name: Build Linux Portable (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
+    env:
+      IMAGE_TAG: degram:centos_env
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Clone.
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install compression tools
+      - name: First set up.
         run: |
           sudo apt-get update
           sudo apt-get install -y xz-utils
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "CCACHE_DIR=$RUNNER_TEMP/.degram-cache" >> $GITHUB_ENV
+          mkdir -p "$RUNNER_TEMP/.degram-cache"
+          cd Telegram/build/docker/centos_env
+          $HOME/.local/bin/poetry install
+          DOCKERFILE=$(DEBUG= LTO= $HOME/.local/bin/poetry run gen_dockerfile)
+          echo "$DOCKERFILE" > Dockerfile
+          rm -rf __pycache__
+
+      - name: Free up some disk space.
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+
+      - name: Set up Docker Buildx.
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
+
+      - name: Restore Docker cache mounts.
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: ${{ runner.temp }}/.mount-cache
+          dockerfile: Telegram/build/docker/centos_env/Dockerfile
+          skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
+
+      - name: Libraries.
+        uses: docker/build-push-action@v7
+        with:
+          context: Telegram/build/docker/centos_env
+          load: true
+          tags: ${{ env.IMAGE_TAG }}
+          cache-from: type=local,src=${{ runner.temp }}/.buildx-cache
+          cache-to: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
+
+      - name: Move cache.
+        run: |
+          rm -rf ${{ runner.temp }}/.buildx-cache
+          mv ${{ runner.temp }}/.buildx-cache{-new,}
+
+      - name: Restore DeGram ccache.
+        id: cache-degram
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-degram-${{ github.run_id }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-degram-
+
+      - name: DeGram build.
+        run: |
+          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
+            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
+          else
+            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
+            API="-D TDESKTOP_API_TEST=ON"
+          fi
+
+          docker run --rm \
+          -u $(id -u) \
+          -v $PWD:/usr/src/tdesktop \
+          -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
+          -e CONFIG=Release \
+          -e CCACHE_SLOPPINESS=pch_defines,time_macros \
+          $IMAGE_TAG \
+          env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON \
+          $API
+
+      - name: Save DeGram ccache.
+        if: always() && github.ref_name == github.event.repository.default_branch
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.cache-degram.outputs.cache-primary-key }}
+
+      - name: Check.
+        run: |
+          filePath="out/Release/DeGram"
+          if test -f "$filePath"; then
+            echo "Build successfully done! :)"
+            echo "File size of ${filePath}: $(stat -c %s "$filePath") Bytes."
+          else
+            echo "Build error, output file does not exist."
+            exit 1
+          fi
 
       - name: Build Linux Portable Package
         run: |
           ./scripts/build_portable.sh "" "${{ matrix.arch }}" "out/Release/DeGram" "."
 
       - name: Upload Linux Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-portable-${{ matrix.arch }}
           path: |
@@ -45,19 +153,137 @@ jobs:
   build-windows-portable:
     name: Build Windows Portable
     runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+    defaults:
+      run:
+        shell: cmd
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Prepare directories.
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Get repository name.
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v7
         with:
           submodules: recursive
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: First set up.
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
+          echo "Configurate git for cherry-picks."
+          git config --global user.email "you@example.com"
+          git config --global user.name "Sample"
+
+      - uses: Eden-CI/msvc-dev-cmd@master
+        name: Native Tools Command Prompt.
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
+          toolset: '14.44'
+
+      - name: NuGet sources.
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
+      - name: ThirdParty cache.
+        id: cache-third-party
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ runner.arch }}-third-party-
+
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-libs-v2-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-libs-v2-
+
+      - name: Qt cache.
+        id: cache-qt
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-qt-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-qt-
+
+      # Upstream passes "skip-release" here because its CI builds Debug only.
+      # DeGram builds Release, so the release libraries are needed.
+      - name: Libraries.
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent
+
+      - name: Free up some disk space.
+        shell: bash
+        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
+
+      - name: Read API credentials.
+        shell: bash
+        run: |
+          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
+            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
+          else
+            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
+            API="-D TDESKTOP_API_TEST=ON"
+          fi
+          echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
+
+      - name: DeGram build.
+        run: |
+          cd %TBUILD%\%REPO_NAME%\Telegram
+
+          call configure.bat ^
+          x64 ^
+          %TDESKTOP_BUILD_API% ^
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+          if errorlevel 1 exit /b 1
+
+          cmake --build ..\out --config Release --parallel
 
       - name: Create Windows Portable Package
         shell: pwsh
         run: |
-          ./scripts/build_portable_windows.ps1 -OutputDir "."
+          $repo = Join-Path $env:TBUILD $env:REPO_NAME
+          $exe = Join-Path $repo "out\Release\DeGram.exe"
+          if (-not (Test-Path $exe)) { throw "Build error, $exe does not exist." }
+          & (Join-Path $repo "scripts\build_portable_windows.ps1") -BinaryPath $exe -OutputDir $env:GITHUB_WORKSPACE
 
       - name: Upload Windows Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-portable
           path: |
@@ -67,18 +293,80 @@ jobs:
   build-macos-portable:
     name: Build macOS Portable
     runs-on: macos-latest
+    timeout-minutes: 360
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Get repository name.
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v7
         with:
           submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: First set up.
+        run: |
+          sudo chown -R `whoami`:admin /usr/local/share
+
+          brew update
+          brew upgrade || true
+          brew install automake libtool meson nasm ninja pkg-config
+
+          # Disable spotlight.
+          sudo mdutil -a -i off
+
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          restore-keys: ${{ runner.OS }}-libs-
+
+      # Upstream passes "skip-release" here because its CI builds Debug only.
+      - name: Libraries.
+        run: |
+          ./$REPO_NAME/Telegram/build/prepare/mac.sh silent
+
+      - name: Free up some disk space.
+        run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
+
+      - name: DeGram build.
+        run: |
+          cd $REPO_NAME/Telegram
+
+          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
+            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
+          else
+            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
+            API="-D TDESKTOP_API_TEST=ON"
+          fi
+
+          ./configure.sh \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON \
+          $API
+
+          cmake --build ../out --config Release --parallel
 
       - name: Create macOS Portable Package
         run: |
-          ./scripts/build_portable_macos.sh "" "out/Release/DeGram.app" "."
+          cd $REPO_NAME
+          test -d out/Release/DeGram.app || { echo "Build error, DeGram.app does not exist."; exit 1; }
+          ./scripts/build_portable_macos.sh "" "out/Release/DeGram.app" "$GITHUB_WORKSPACE"
 
       - name: Upload macOS Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-portable
           path: |

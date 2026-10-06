@@ -18,7 +18,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 DeGram is built on [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop), which is itself built on [Telegram Desktop](https://github.com/telegramdesktop/tdesktop). It keeps AyuGram's message-history and ghost-mode features and adds a portable layout, a duress/panic wipe, and client-side restriction bypasses.
 
-> **Status:** there are no prebuilt releases yet. CI only packages binaries; it doesn't compile them (see [docs/CI.md](docs/CI.md)). Build from source for now.
+> **Status:** there are no prebuilt releases yet. CI now compiles Release builds (Linux x86_64 and arm64, Windows x64, macOS) and packages them, but the workflow is untested until its first run (see [docs/CI.md](docs/CI.md)). Build from source for now.
 
 ## Features
 
@@ -31,7 +31,7 @@ DeGram is built on [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop),
 | **Up to 100 accounts** | Raises the account limit to 100 (`Main::Domain::kMaxAccounts`). | — |
 | **Streamer mode** | Hides DeGram windows from screen capture and recording. | Off |
 | **Portable mode** | Keeps all data in a folder next to the executable. See [Portable mode](#portable-mode). | Auto |
-| **KABOOM (duress wipe)** | Deletes `tdata` and exits immediately when triggered. See below. | **10 bad tries** |
+| **KABOOM (duress wipe)** | Deletes `tdata` (overwriting files first, best effort) and exits when triggered. Configurable in the app. See below. | **10 bad tries** |
 | **Kill the App** | A drawer menu item that ends the process at once with `std::_Exit(0)`. Nothing is flushed to disk. | — |
 
 ### KABOOM: read this before setting a local passcode
@@ -41,27 +41,20 @@ KABOOM runs from the local-passcode lock screen. Two things trigger it:
 1. **Too many wrong passcodes.** The default is **10 in a row**. This is on by default, and there's no prompt or second chance: forget your passcode and type it wrong 10 times, and every account on this device is deleted.
 2. **The duress passcode,** if you set one.
 
-When triggered, KABOOM deletes the whole `tdata` folder (all accounts, settings and `ayudata.db`) and exits. Files are **unlinked, not securely overwritten**, so forensic recovery from the disk may still be possible.
+When triggered, KABOOM overwrites the files in `tdata` with zeros, deletes the whole `tdata` folder (all accounts, settings and `ayudata.db`) and exits. The overwrite skips symlinks and `user_data*/`, `emoji/` and `dictionaries/`; the media cache is encrypted with keys that get zeroed, so it becomes unreadable. This is **best effort, not a guaranteed secure erase**: SSDs (wear levelling) and copy-on-write or journaling filesystems may keep old copies.
 
-There's no in-app editor yet. To change either setting, close DeGram and edit `tdata/ayu_settings.json`:
+To configure it, open Settings → DeGram Preferences → DeGram → *Duress Passcode / KABOOM Wipe*:
 
-```json
-"duressPasscode": "1234",
-"kaboomPinFails": 0
-```
+- **Wrong passcodes before wipe:** 0 turns the trigger off, the maximum is 100, the default is 10.
+- **Duress passcode:** type a new one, or leave the field empty to keep the current one. A *Remove duress* button appears when one is set. It can't be the same as your local passcode.
 
-`kaboomPinFails: 0` turns off the wrong-passcode trigger. The duress passcode is stored **in plain text** in that file. Settings → DeGram Preferences → DeGram → *Duress Passcode / KABOOM Wipe* shows the current values.
+The settings row shows e.g. "Wipe after 10 bad tries" or "Bad tries wipe off", plus ", duress passcode set".
 
-### Network connections besides Telegram
+The duress passcode is not stored in plain text. `tdata/ayu_settings.json` holds `duressPasscodeHash` (PBKDF2-SHA512, 100000 iterations, base64) and `duressPasscodeSalt` (32 random bytes, base64). An old plain `duressPasscode` key is migrated to the hash on load and removed from the file. A short numeric PIN can still be brute-forced offline from the hash, so use a longer passcode.
 
-DeGram doesn't include analytics, and crash reporting is **off** by default. It still makes these inherited AyuGram requests:
+### Network connections
 
-| Endpoint | Why |
-| :--- | :--- |
-| `update.ayugram.one` | Remote config: supporter badges and donation info (`ayu/utils/rc_manager.cpp`) |
-| `api.exteragram.app` | Profile badges (`rc_manager.cpp`) |
-| `cdn.jsdelivr.net/gh/AyuGram/Languages` | Translations for AyuGram-specific strings (`ayu/ayu_lang.cpp`) |
-| Google / Yandex translate | Only if you choose that translation provider |
+DeGram only talks to Telegram, with one exception: Google or Yandex translate, and only if you select it as the translation provider. There are no analytics, crash reporting is off by default, and there are no AyuGram or exteraGram servers or translation downloads. Developer and channel lists are built in, and there are no supporter badges.
 
 ## Portable mode
 
