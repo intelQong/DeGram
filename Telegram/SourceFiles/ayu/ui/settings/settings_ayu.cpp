@@ -669,15 +669,15 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 	const auto &settings = AyuSettings::getInstance();
 	const auto hasDuress = settings.hasDuressPasscode();
 
-	box->setTitle(tr::degram_KaboomTitle());
+	box->setTitle(tr::ayu_KaboomTitle());
 	box->addRow(object_ptr<Ui::FlatLabel>(
 		box,
-		tr::degram_KaboomAbout(),
+		tr::ayu_KaboomAbout(),
 		st::boxLabel));
 	const auto tries = box->addRow(object_ptr<Ui::InputField>(
 		box,
 		st::defaultInputField,
-		tr::degram_KaboomTries(),
+		tr::ayu_KaboomTries(),
 		QString::number(settings.kaboomPinFails())));
 	// PasswordInput is not an RpWidget, so it can't be a box row directly.
 	auto duressWrap = object_ptr<Ui::RpWidget>(box);
@@ -686,8 +686,8 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 		duressWrap.data(),
 		st::defaultInputField,
 		hasDuress
-			? tr::degram_KaboomDuressChange()
-			: tr::degram_KaboomDuressNew());
+			? tr::ayu_KaboomDuressChange()
+			: tr::ayu_KaboomDuressNew());
 	duressWrap->widthValue(
 	) | rpl::on_next([=](int width) {
 		duress->resize(width, duress->height());
@@ -709,7 +709,7 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 			if (local.hasLocalPasscode()
 				&& local.checkPasscode(passcode.toUtf8())) {
 				duress->showError();
-				box->showToast(tr::degram_KaboomDuressSame(tr::now));
+				box->showToast(tr::ayu_KaboomDuressSame(tr::now));
 				return;
 			}
 		}
@@ -723,7 +723,7 @@ void KaboomBox(not_null<Ui::GenericBox*> box) {
 	box->addButton(tr::lng_settings_save(), save);
 	box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 	if (hasDuress) {
-		box->addLeftButton(tr::degram_KaboomDuressRemove(), [=] {
+		box->addLeftButton(tr::ayu_KaboomDuressRemove(), [=] {
 			AyuSettings::getInstance().setDuressPasscode(QString());
 			box->closeBox();
 		});
@@ -746,23 +746,23 @@ void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.setter = &AyuSettings::setDisableAds,
 	});
 
-	builder.addSubsectionTitle(tr::degram_KaboomHeader());
+	builder.addSubsectionTitle(tr::ayu_KaboomHeader());
 	builder.addButton({
 		.id = u"degram/duress_pin"_q,
-		.title = tr::degram_KaboomButton(),
+		.title = tr::ayu_KaboomButton(),
 		.icon = { &st::menuIconPermissions },
 		.label = rpl::combine(
 			AyuSettings::getInstance().hasDuressPasscodeValue(),
 			AyuSettings::getInstance().kaboomPinFailsValue()
 		) | rpl::map([](bool duress, int fails) {
 			const auto tries = (fails > 0)
-				? tr::degram_KaboomLabelTries(
+				? tr::ayu_KaboomLabelTries(
 					tr::now,
 					lt_tries,
 					QString::number(fails))
-				: tr::degram_KaboomLabelOff(tr::now);
+				: tr::ayu_KaboomLabelOff(tr::now);
 			return duress
-				? tr::degram_KaboomLabelDuress(tr::now, lt_status, tries)
+				? tr::ayu_KaboomLabelDuress(tr::now, lt_status, tries)
 				: tries;
 		}),
 		.onClick = [controller = builder.controller()] {

@@ -74,3 +74,7 @@ This updates `build/version`, `core/version.h`, `winrc/*.rc` and the AppX manife
 Release: Actions > "Create Portable Cross-Platform Release" > Run workflow. It creates a draft release `v<version>`. It compiles Release builds (Linux x86_64, Windows x64). macOS is not supported and packages them. It is untested until its first run; see [docs/CI.md](docs/CI.md).
 
 AGENTS.md says not to compile in agent sessions.
+
+## Gotcha: new UI strings
+
+New keys in `Telegram/Resources/langs/lang.strings` must start with `lng_` or `ayu_`. AyuGram's `codegen_lang` (lang subsets, `codegen/lang/subsets.cpp`) only scans sources for those two prefixes. Any other prefix compiles on Windows but fails on Linux with "'<key>' is not a member of 'tr'".

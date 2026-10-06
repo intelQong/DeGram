@@ -929,7 +929,7 @@ void MainMenu::setupMenu() {
 	}
 
 	addAction(
-		tr::degram_KillApp(),
+		tr::ayu_KillApp(),
 		{&st::menuIconLock}
 	)->setClickedCallback([=] {
 		std::_Exit(0);
