@@ -352,6 +352,20 @@ jobs:
           }
           Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
 
+          # TBuild (libraries + build output) lives on C:. If D: has more room,
+          # put the compiler output there through a junction.
+          $c = (Get-PSDrive C).Free
+          $d = (Get-PSDrive D -ErrorAction SilentlyContinue).Free
+          if ($d -and $d -gt ($c + 5GB)) {
+            $out = Join-Path $env:TBUILD "$env:REPO_NAME\out"
+            New-Item -ItemType Directory -Force -Path 'D:\degram-out' | Out-Null
+            if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+            New-Item -ItemType Junction -Path $out -Target 'D:\degram-out' | Out-Null
+            Write-Host "Build output redirected to D:\degram-out"
+          } else {
+            Write-Host "Build output stays on C:"
+          }
+
       - name: Read API credentials.
         shell: bash
         run: |
@@ -376,6 +390,18 @@ jobs:
           if errorlevel 1 exit /b 1
 
           cmake --build ..\out --config Release --parallel
+
+      - name: Disk usage on failure.
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          foreach ($dir in @("$env:TBUILD\Libraries", "$env:TBUILD\ThirdParty", "$env:TBUILD\$env:REPO_NAME\out", 'D:\degram-out')) {
+            if (Test-Path $dir) {
+              $gb = (Get-ChildItem $dir -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1GB
+              Write-Host ("{0}: {1:N1} GB" -f $dir, $gb)
+            }
+          }
 
       - name: Create Windows Portable Package
         shell: pwsh
