@@ -53,3 +53,7 @@ Not compiled, per AGENTS.md. `scripts/build_portable.sh` was tested manually.
 - KABOOM is still on by default at 10 bad tries (deliberate).
 - The new `ayu_Kaboom*` (plus the existing `ayu_KillApp`) strings only exist in English.
 - Not compiled locally (AGENTS.md).
+
+## 2026-10-07: API credentials
+
+Owner chose the official Telegram Desktop keys for release builds (repo secrets `API_ID`/`API_HASH`, no code change). Rationale and risk: [CI.md](CI.md#required-secrets).
