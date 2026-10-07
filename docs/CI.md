@@ -22,7 +22,6 @@ Build logic is ported from upstream tdesktop v7.0.9 (`.github/workflows/linux.ym
 
 Repository secrets `API_ID` and `API_HASH` (see [api_credentials.md](api_credentials.md)). If either is missing the builds log a warning and use the test credentials (`-D TDESKTOP_API_TEST=ON`, as upstream CI does). Packages built that way are not suitable for release.
 
-**Decision (2026-10-07):** DeGram release builds use the official Telegram Desktop credentials, like AyuGram, Telegraher (Android keys) and other forks, so logins are treated like the official client. They are set only as repository secrets, never committed. This goes against Telegram's API terms, which ask each app to use its own ID: Telegram can restrict accounts that use them. To switch to DeGram's own keys, replace the two secrets with values from https://my.telegram.org.
 
 ## Status and limits
 
@@ -36,7 +35,7 @@ Repository secrets `API_ID` and `API_HASH` (see [api_credentials.md](api_credent
 - Windows library prep uses MSYS2 UCRT packages (`mingw-w64-ucrt-x86_64-*`), ported from upstream tdesktop `dev`: MSYS2 dropped `mingw-w64-x86_64-diffutils`, which broke the old recipe.
 - The ccache is only saved on the default branch.
 - No LTO on Linux, unlike an official release build.
-- Windows is x64 only. macOS was dropped on 2026-10-06 (owner decision); its job and `scripts/build_portable_macos.sh` were removed.
+- Windows is x64 only. macOS was dropped on 2026-10-06; its job and `scripts/build_portable_macos.sh` were removed.
 - Upstream's Windows job uses `Eden-CI/msvc-dev-cmd@master` and a pinned `free-disk-space` action. They are copied as is.
 
 ## Running it
