@@ -16,7 +16,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 ---
 
-DeGram is built on [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop), which is itself built on [Telegram Desktop](https://github.com/telegramdesktop/tdesktop). It keeps AyuGram's message-history and ghost-mode features and adds a portable layout, a duress/panic wipe, and client-side restriction bypasses.
+DeGram is highly inspired from [Telegraher](https://github.com/nikitasius/Telegraher)  built on top of [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop). 
 
 > **Status:** there are no published releases yet. CI compiles and packages Release builds for Linux x86_64 and Windows x64 (first green run: 2026-10-06); pull-request runs attach the packages as artifacts. See [docs/CI.md](docs/CI.md).
 
@@ -126,7 +126,7 @@ Contact: [@redditOwner](https://t.me/redditOwner) on Telegram. The same address 
 GPL-3.0 with the OpenSSL exception. See [LICENSE](LICENSE) and [LICENSE.EXCEPTION](LICENSE.EXCEPTION).
 
 - [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) and [Desktop App Toolkit](https://github.com/desktop-app): the base client.
-- [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) by AlexeyZavar and contributors: deleted/edited message saving, ghost mode, and most of `ayu/`.
+- [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) by AlexeyZavar and contributors: deleted/edited message saving, ghost mode, and most of.
 - [Telegraher](https://github.com/nikitasius/Telegraher) by Nikita S. ([@nikitasius](https://github.com/nikitasius)): the ideas behind KABOOM, keeping view-once media, the restriction bypass, the 100-account limit and ad filtering.
 
 DeGram is an independent project. It isn't affiliated with or endorsed by Telegram FZ-LLC.
