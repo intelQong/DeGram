@@ -16,7 +16,7 @@ A privacy-focused, portable fork of Telegram Desktop.
 
 ---
 
-DeGram is highly inspired from [Telegraher](https://github.com/nikitasius/Telegraher)  built on top of [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop). 
+DeGram is highly inspired from [Telegraher](https://github.com/nikitasius/Telegraher)   & built on top of [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop). 
 
 > “No problem. I’ll bend the door open.” - Bender Bending Rodríguez
 
