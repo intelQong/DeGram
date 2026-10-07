@@ -1,4 +1,4 @@
-// This is the source code of DeGram for Desktop.
+// This is the source code of AyuGram for Desktop, modified for DeGram.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -8,7 +8,7 @@
 
 #include "ayu/data/entities.h"
 
-#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkReply> // kept: other headers rely on it transitively
 
 extern std::unordered_set<ID> default_developers;
 extern std::unordered_set<ID> default_channels;
@@ -19,9 +19,10 @@ struct CustomBadge
 	QString text;
 };
 
-class RCManager final : public QObject
+// DeGram: offline only. AyuGram fetched these lists from
+// update.ayugram.one / api.exteragram.app; DeGram uses the built-in defaults.
+class RCManager final
 {
-	Q_OBJECT
 public:
 	static RCManager &getInstance() {
 		static RCManager instance;
@@ -30,31 +31,21 @@ public:
 
 	RCManager(const RCManager &) = delete;
 	RCManager &operator=(const RCManager &) = delete;
-	RCManager(RCManager &&) = delete;
-	RCManager &operator=(RCManager &&) = delete;
-
-	void start();
 
 	[[nodiscard]] const std::unordered_set<ID> &developers() const {
-		if (!initialized) {
-			return default_developers;
-		}
-		return _developers;
+		return default_developers;
 	}
 
 	[[nodiscard]] const std::unordered_set<ID> &channels() const {
-		if (!initialized) {
-			return default_channels;
-		}
-		return _officialChannels;
+		return default_channels;
 	}
 
 	[[nodiscard]] const std::unordered_set<ID> &supporters() const {
-		return _supporters;
+		return _empty;
 	}
 
 	[[nodiscard]] const std::unordered_set<ID> &supporterChannels() const {
-		return _supporterChannels;
+		return _empty;
 	}
 
 	[[nodiscard]] const std::unordered_map<ID, CustomBadge> &supporterCustomBadges() const {
@@ -62,53 +53,25 @@ public:
 	}
 
 	[[nodiscard]] QString donateUsername() const {
-		return _donateUsername;
+		return QString("@redditOwner");
 	}
 
 	[[nodiscard]] QString donateAmountUsd() const {
-		return _donateAmountUsd;
+		return QString("5.00");
 	}
 
 	[[nodiscard]] QString donateAmountTon() const {
-		return _donateAmountTon;
+		return QString("3.50");
 	}
 
 	[[nodiscard]] QString donateAmountRub() const {
-		return _donateAmountRub;
+		return QString("386");
 	}
 
 private:
 	RCManager() = default;
-	~RCManager();
 
-	void makeRequest();
-	void sendRequest();
-	bool tryRetryWithExteraFallback();
-
-	void gotResponse();
-	void gotFailure(QNetworkReply::NetworkError e);
-	void clearSentRequest();
-	bool handleResponse(const QByteArray &response);
-	bool applyResponse(const QByteArray &response);
-
-	bool initialized = false;
-
-	std::unordered_set<ID> _developers = {};
-	std::unordered_set<ID> _officialChannels = {};
-	std::unordered_set<ID> _supporters = {};
-	std::unordered_set<ID> _supporterChannels = {};
-	std::unordered_map<ID, CustomBadge> _customBadges = {};
-
-	QString _donateUsername = QString("@intelQong");
-	QString _donateAmountUsd = QString("5.00");
-	QString _donateAmountTon = QString("3.50");
-	QString _donateAmountRub = QString("386");
-
-	QTimer* _timer = nullptr;
-
-	std::unique_ptr<QNetworkAccessManager> _manager = nullptr;
-	QNetworkReply *_reply = nullptr;
-	bool _useExteraFallback = false;
-	bool _retryAttempted = false;
+	const std::unordered_set<ID> _empty;
+	const std::unordered_map<ID, CustomBadge> _customBadges;
 
 };

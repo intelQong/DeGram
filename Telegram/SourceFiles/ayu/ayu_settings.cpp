@@ -1,4 +1,4 @@
-// This is the source code of DeGram for Desktop.
+// This is the source code of AyuGram for Desktop, modified for DeGram.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -12,6 +12,8 @@
 #include "ayu/ayu_worker.h"
 #include "ayu/features/streamer_mode/streamer_mode.h"
 #include "ayu/ui/ayu_logo.h"
+#include "base/openssl_help.h"
+#include "base/random.h"
 #include "core/application.h"
 #include "features/filters/filters_cache_controller.h"
 #include "features/translator/ayu_translator.h"
@@ -23,10 +25,55 @@
 
 #include <fstream>
 #include <QApplication>
+#include <QDirIterator>
 
 using json = nlohmann::json;
 
 namespace {
+
+constexpr auto kDuressSaltSize = 32;
+constexpr auto kDuressIterations = 100000;
+constexpr auto kOverwriteChunk = qint64(1024 * 1024);
+
+[[nodiscard]] QString HashDuressPasscode(
+		const QString &passcode,
+		const QByteArray &salt) {
+	const auto utf8 = passcode.trimmed().toUtf8();
+	const auto hash = openssl::Pbkdf2Sha512(
+		bytes::make_span(utf8),
+		bytes::make_span(salt),
+		kDuressIterations);
+	return QString::fromLatin1(QByteArray(
+		reinterpret_cast<const char*>(hash.data()),
+		hash.size()).toBase64());
+}
+
+void OverwriteWithZeros(const QString &path) {
+	QFile file(path);
+	if (!file.open(QIODevice::ReadWrite)) {
+		return;
+	}
+	auto left = file.size();
+	const auto zeros = QByteArray(int(std::min(left, kOverwriteChunk)), '\0');
+	while (left > 0) {
+		const auto written = file.write(
+			zeros.constData(),
+			std::min(left, qint64(zeros.size())));
+		if (written <= 0) {
+			break;
+		}
+		left -= written;
+	}
+	file.flush();
+}
+
+// Media caches (user_data*) are encrypted with keys stored elsewhere in
+// tdata, so zeroing those keys is enough to make them unreadable.
+[[nodiscard]] bool SkipOverwrite(const QString &relativePath) {
+	return relativePath.startsWith(u"user_data"_q)
+		|| relativePath.startsWith(u"emoji/"_q)
+		|| relativePath.startsWith(u"dictionaries/"_q);
+}
 
 std::string getSettingsPath() {
 	return (cWorkingDir() + u"tdata/ayu_settings.json"_q).toStdString();
@@ -399,6 +446,19 @@ void AyuSettings::load() {
 			from_json(p, settings);
 		} catch (...) {
 			LOG(("DeGramSettings: failed to parse settings file"));
+		}
+
+		if (p.contains("duressPasscode")) {
+			// Older builds stored the duress passcode in plain text.
+			const auto legacy = p["duressPasscode"].is_string()
+				? QString::fromStdString(p["duressPasscode"].get<std::string>())
+				: QString();
+			if (!settings.hasDuressPasscode() && !legacy.trimmed().isEmpty()) {
+				settings.setDuressPasscode(legacy); // also saves
+			} else {
+				save();
+			}
+			LOG(("DeGramSettings: migrated duress passcode to hashed format"));
 		}
 	} catch (...) {
 		LOG(("DeGramSettings: failed to read settings file (not json-like)"));
@@ -1069,21 +1129,39 @@ void AyuSettings::setStreamerMode(bool val) {
 	save();
 }
 
-void AyuSettings::setDuressPasscode(const QString &val) {
-	if (_duressPasscode.current() == val) return;
-	_duressPasscode = val;
+void AyuSettings::setDuressPasscode(const QString &passcode) {
+	if (passcode.trimmed().isEmpty()) {
+		_duressPasscodeSalt = QString();
+		_duressPasscodeHash = QString();
+	} else {
+		auto salt = QByteArray(kDuressSaltSize, Qt::Uninitialized);
+		base::RandomFill(salt.data(), salt.size());
+		_duressPasscodeSalt = QString::fromLatin1(salt.toBase64());
+		_duressPasscodeHash = HashDuressPasscode(passcode, salt);
+	}
 	save();
 }
 
 void AyuSettings::setKaboomPinFails(int val) {
+	val = std::clamp(val, 0, kMaxKaboomPinFails);
 	if (_kaboomPinFails.current() == val) return;
 	_kaboomPinFails = val;
 	save();
 }
 
+rpl::producer<bool> AyuSettings::hasDuressPasscodeValue() const {
+	return _duressPasscodeHash.value() | rpl::map([](const QString &hash) {
+		return !hash.isEmpty();
+	});
+}
+
 bool AyuSettings::isDuressPasscode(const QString &passcode) const {
-	const auto duress = _duressPasscode.current().trimmed();
-	return !duress.isEmpty() && (passcode.trimmed() == duress);
+	const auto &hash = _duressPasscodeHash.current();
+	if (hash.isEmpty() || passcode.trimmed().isEmpty()) {
+		return false;
+	}
+	const auto salt = QByteArray::fromBase64(_duressPasscodeSalt.toLatin1());
+	return HashDuressPasscode(passcode, salt) == hash;
 }
 
 bool AyuSettings::shouldPanicOnBadTries(int tries) const {
@@ -1092,24 +1170,24 @@ bool AyuSettings::shouldPanicOnBadTries(int tries) const {
 }
 
 void AyuSettings::executePanicWipe() {
-	const auto working = cWorkingDir();
-	const auto tdata = working + u"tdata"_q;
-	QDir(tdata).removeRecursively();
-
-	QDir(working + u"DeGramForcePortable"_q).removeRecursively();
-	QDir(working + u"KangramForcePortable"_q).removeRecursively();
-	QDir(working + u"TelegramForcePortable"_q).removeRecursively();
-
-	const auto dbPath = working + u"ayu_database.db"_q;
-	QFile::remove(dbPath);
-	QFile::remove(dbPath + u"-wal"_q);
-	QFile::remove(dbPath + u"-shm"_q);
-
-	const auto dbDataPath = working + u"tdata/ayudata.db"_q;
-	QFile::remove(dbDataPath);
-	QFile::remove(dbDataPath + u"-wal"_q);
-	QFile::remove(dbDataPath + u"-shm"_q);
-
+	// tdata holds every account, ayu_settings.json and ayudata.db (+ -wal/-shm).
+	// Zero the keys, settings and databases first, then delete everything.
+	// SSDs and copy-on-write filesystems may still keep old blocks.
+	const auto tdata = QDir(cWorkingDir() + u"tdata"_q);
+	QDirIterator it(
+		tdata.absolutePath(),
+		QDir::Files | QDir::Hidden | QDir::System,
+		QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		const auto path = it.next();
+		if (it.fileInfo().isSymLink()) {
+			continue; // never write through a link to outside tdata
+		}
+		if (!SkipOverwrite(tdata.relativeFilePath(path))) {
+			OverwriteWithZeros(path);
+		}
+	}
+	QDir(tdata.absolutePath()).removeRecursively();
 	std::_Exit(0);
 }
 
@@ -1209,7 +1287,8 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"avatarCorners", s._avatarCorners.current()},
 		{"singleCornerRadius", s._singleCornerRadius.current()},
 		{"streamerMode", s._streamerMode.current()},
-		{"duressPasscode", s._duressPasscode.current().toStdString()},
+		{"duressPasscodeHash", s._duressPasscodeHash.current().toStdString()},
+		{"duressPasscodeSalt", s._duressPasscodeSalt.toStdString()},
 		{"kaboomPinFails", s._kaboomPinFails.current()},
 		{"messageShotSettings", s._messageShotSettings}
 	};
@@ -1256,7 +1335,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._showChannelReactions = j.value("showChannelReactions", defaults._showChannelReactions.current());
 	s._showGroupReactions = j.value("showGroupReactions", defaults._showGroupReactions.current());
 	s._showPrivateChatReactions = j.value("showPrivateChatReactions", defaults._showPrivateChatReactions.current());
-	s._appIcon = j.value("appIcon", defaults._appIcon.current());
+	// DeGram ships only the default icon; older settings may name a removed one.
+	s._appIcon = defaults._appIcon.current();
 	s._simpleQuotesAndReplies = j.value("simpleQuotesAndReplies", defaults._simpleQuotesAndReplies.current());
 	s._hideFastShare = j.value("hideFastShare", defaults._hideFastShare.current());
 	s._replaceBottomInfoWithIcons = j.value("replaceBottomInfoWithIcons", defaults._replaceBottomInfoWithIcons.current());
@@ -1315,7 +1395,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._avatarCorners = j.value("avatarCorners", defaults._avatarCorners.current());
 	s._singleCornerRadius = j.value("singleCornerRadius", defaults._singleCornerRadius.current());
 	s._streamerMode = j.value("streamerMode", defaults._streamerMode.current());
-	s._duressPasscode = QString::fromStdString(j.value("duressPasscode", defaults._duressPasscode.current().toStdString()));
+	s._duressPasscodeHash = QString::fromStdString(j.value("duressPasscodeHash", std::string()));
+	s._duressPasscodeSalt = QString::fromStdString(j.value("duressPasscodeSalt", std::string()));
 	s._kaboomPinFails = j.value("kaboomPinFails", defaults._kaboomPinFails.current());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {

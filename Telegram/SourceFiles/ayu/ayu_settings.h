@@ -1,4 +1,4 @@
-// This is the source code of DeGram for Desktop.
+// This is the source code of AyuGram for Desktop, modified for DeGram.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -353,14 +353,17 @@ public:
 	[[nodiscard]] int avatarCorners() const { return _avatarCorners.current(); }
 	[[nodiscard]] bool singleCornerRadius() const { return _singleCornerRadius.current(); }
 	[[nodiscard]] bool streamerMode() const { return _streamerMode.current(); }
-	[[nodiscard]] const QString &duressPasscode() const { return _duressPasscode.current(); }
+	static constexpr auto kMaxKaboomPinFails = 100;
+
+	[[nodiscard]] bool hasDuressPasscode() const { return !_duressPasscodeHash.current().isEmpty(); }
 	[[nodiscard]] int kaboomPinFails() const { return _kaboomPinFails.current(); }
 
 	[[nodiscard]] bool isDuressPasscode(const QString &passcode) const;
 	[[nodiscard]] bool shouldPanicOnBadTries(int tries) const;
 	static void executePanicWipe();
 
-	void setDuressPasscode(const QString &val);
+	// Stores a salted PBKDF2 hash; an empty passcode removes it.
+	void setDuressPasscode(const QString &passcode);
 	void setKaboomPinFails(int val);
 
 	void setSaveDeletedMessages(bool val);
@@ -624,8 +627,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> singleCornerRadiusChanges() const { return _singleCornerRadius.changes(); }
 	[[nodiscard]] rpl::producer<bool> streamerModeValue() const { return _streamerMode.value(); }
 	[[nodiscard]] rpl::producer<bool> streamerModeChanges() const { return _streamerMode.changes(); }
-	[[nodiscard]] rpl::producer<QString> duressPasscodeValue() const { return _duressPasscode.value(); }
-	[[nodiscard]] rpl::producer<QString> duressPasscodeChanges() const { return _duressPasscode.changes(); }
+	[[nodiscard]] rpl::producer<bool> hasDuressPasscodeValue() const;
 	[[nodiscard]] rpl::producer<int> kaboomPinFailsValue() const { return _kaboomPinFails.value(); }
 	[[nodiscard]] rpl::producer<int> kaboomPinFailsChanges() const { return _kaboomPinFails.changes(); }
 
@@ -724,7 +726,8 @@ private:
 	rpl::variable<int> _avatarCorners = 23;
 	rpl::variable<bool> _singleCornerRadius = false;
 	rpl::variable<bool> _streamerMode = false;
-	rpl::variable<QString> _duressPasscode = QString();
+	rpl::variable<QString> _duressPasscodeHash = QString(); // base64
+	QString _duressPasscodeSalt; // base64
 	rpl::variable<int> _kaboomPinFails = 10;
 
 	rpl::variable<bool> _useGlobalGhostMode = true;

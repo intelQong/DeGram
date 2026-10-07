@@ -9034,3 +9034,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_AboutText1" = "Security and privacy focused Telegram client based on {api_link}.";
 "ayu_UpdateAyuGram" = "Update DeGram";
 "ayu_UtilityRestartRequired" = "The app will close in 5 seconds.";
+
+"ayu_KaboomHeader" = "Security & Duress (KABOOM)";
+"ayu_KaboomButton" = "Duress Passcode / KABOOM Wipe";
+"ayu_KaboomLabelTries" = "Wipe after bad tries";
+"ayu_KaboomLabelOff" = "Bad tries wipe off";
+"ayu_KaboomLabelDuress" = "duress passcode set";
+"ayu_KaboomTitle" = "KABOOM";
+"ayu_KaboomAbout" = "KABOOM overwrites and deletes the whole tdata folder (all accounts, settings and the deleted-messages database) and exits immediately. It runs from the local passcode lock screen.";
+"ayu_KaboomTries" = "Wipe after this many wrong passcodes (0 = off)";
+"ayu_KaboomDuressNew" = "Duress passcode (optional)";
+"ayu_KaboomDuressChange" = "New duress passcode (leave empty to keep)";
+"ayu_KaboomDuressRemove" = "Remove duress";
+"ayu_KaboomDuressSame" = "The duress passcode must differ from your local passcode.";

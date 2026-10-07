@@ -1,4 +1,4 @@
-// This is the source code of DeGram for Desktop.
+// This is the source code of AyuGram for Desktop, modified for DeGram.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -142,29 +142,8 @@ void BuildDonations(SectionBuilder &builder) {
 			const auto container = wctx.container;
 
 			AddSubsectionTitle(container, tr::ayu_SupportHeader());
-			AddDonate(
-				AddButtonWithIcon(
-					container,
-					rpl::single(QString("Boosty")),
-					st::settingsButton),
-				"boosty"
-			)->setClickedCallback([=] {
-				QDesktopServices::openUrl(QString("https://boosty.to/alexeyzavar"));
-			});
-			AddCryptoDonate("TON", QString("UQA4i8U8vP3mYUZSV3KqDQEHPwmhninEqCkkKc7BITQ652de"), container);
-			AddCryptoDonate("Bitcoin", QString("bc1qdk6qq4mzq5yap3fpy0qau3246w3m3uwac9f0xd"), container);
-			AddCryptoDonate("Ethereum", QString("0x405589857C8DFAb45B2027c68ad1e58877FDa347"), container);
-			AddCryptoDonate("Solana", QString("8ZHQpPxpsdRjsWoBcF1dmvRM5dB6zEhJ3jMBFZjYfyHs"), container);
-			AddCryptoDonate("Tron", QString("TRpbajq38qU8joThgAfKJLyEPbNjzsdPJ1"), container);
+			AddCryptoDonate("Bitcoin", QString("bc1qdf4rjhzrz3eezcm5dmf7w6tp369thk2xdskdjq"), container);
 			AddSkip(container);
-
-			AddDividerText(container,
-				tr::ayu_SupportDescription2(
-					lt_item,
-					rpl::single(
-						Ui::Text::Link(tr::ayu_SupportDescription1(tr::now), QString("tg://support"))
-					),
-					tr::marked));
 		}, [&](const SearchContext &sctx) {
 			sctx.entries->push_back({
 				.id = u"ayu/donate"_q,

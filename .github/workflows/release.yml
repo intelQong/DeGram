@@ -1,48 +1,166 @@
 name: Create Portable Cross-Platform Release
 
+# Compiles DeGram (Release) on Linux and Windows, then packages it with
+# scripts/build_portable*.  Build logic is ported from upstream tdesktop v7.0.9
+# (.github/workflows/linux.yml, win.yml), switched from Debug to Release.
+# Untested until the first run.  See docs/CI.md before enabling tag triggers.
+#
+# Repository secrets used: API_ID, API_HASH (see docs/api_credentials.md).
+# When they are not set the build falls back to the test API credentials
+# (TDESKTOP_API_TEST), like upstream CI does.
+
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
+  # Build-only check on PRs (no release is published, see publish-release).
+  pull_request:
+    branches: [ dev, main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 jobs:
   build-linux-portable:
     name: Build Linux Portable (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
     strategy:
+      fail-fast: false
       matrix:
         include:
+          # arm64 is not supported: upstream only builds x86_64, and the
+          # pinned rnnoise v0.2 fails to compile its NEON code (docs/CI.md).
           - arch: x86_64
             runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
+    env:
+      IMAGE_TAG: degram:centos_env
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Clone.
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install compression tools
+      - name: First set up.
         run: |
           sudo apt-get update
           sudo apt-get install -y xz-utils
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "CCACHE_DIR=$RUNNER_TEMP/.degram-cache" >> $GITHUB_ENV
+          mkdir -p "$RUNNER_TEMP/.degram-cache"
+          cd Telegram/build/docker/centos_env
+          $HOME/.local/bin/poetry install
+          DOCKERFILE=$(DEBUG= LTO= $HOME/.local/bin/poetry run gen_dockerfile)
+          echo "$DOCKERFILE" > Dockerfile
+          rm -rf __pycache__
+
+      - name: Free up some disk space.
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+
+      - name: Set up Docker Buildx.
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Restore/save are split so built libraries are cached even when the
+      # DeGram compile later fails (a cold library build takes ~2 hours).
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
+
+      - name: Restore Docker cache mounts.
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: ${{ runner.temp }}/.mount-cache
+          dockerfile: Telegram/build/docker/centos_env/Dockerfile
+          skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
+
+      - name: Libraries.
+        uses: docker/build-push-action@v7
+        with:
+          context: Telegram/build/docker/centos_env
+          load: true
+          tags: ${{ env.IMAGE_TAG }}
+          cache-from: type=local,src=${{ runner.temp }}/.buildx-cache
+          cache-to: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
+
+      - name: Move cache.
+        run: |
+          rm -rf ${{ runner.temp }}/.buildx-cache
+          mv ${{ runner.temp }}/.buildx-cache{-new,}
+
+      - name: Save libraries cache.
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
+
+      - name: Restore DeGram ccache.
+        id: cache-degram
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-degram-${{ github.run_id }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-degram-
+
+      - name: DeGram build.
+        run: |
+          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
+            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
+          else
+            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
+            API="-D TDESKTOP_API_TEST=ON"
+          fi
+
+          docker run --rm \
+          -u $(id -u) \
+          -v $PWD:/usr/src/tdesktop \
+          -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
+          -e CONFIG=Release \
+          -e CCACHE_SLOPPINESS=pch_defines,time_macros \
+          $IMAGE_TAG \
+          env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON \
+          $API
+
+      - name: Save DeGram ccache.
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.cache-degram.outputs.cache-primary-key }}
+
+      - name: Check.
+        run: |
+          filePath="out/Release/DeGram"
+          if test -f "$filePath"; then
+            echo "Build successfully done! :)"
+            echo "File size of ${filePath}: $(stat -c %s "$filePath") Bytes."
+          else
+            echo "Build error, output file does not exist."
+            exit 1
+          fi
 
       - name: Build Linux Portable Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          [ -z "$VERSION" ] && VERSION="7.0.17"
-          mkdir -p out/Release
-          if [ ! -f out/Release/DeGram ] && [ ! -f out/Release/Telegram ]; then
-            echo '#!/bin/sh' > out/Release/DeGram
-            echo 'echo "DeGram Desktop Binary"' >> out/Release/DeGram
-            chmod +x out/Release/DeGram
-          fi
-          chmod +x scripts/build_portable.sh
-          ./scripts/build_portable.sh "$VERSION" "${{ matrix.arch }}" "out/Release/DeGram" "."
+          ./scripts/build_portable.sh "" "${{ matrix.arch }}" "out/Release/DeGram" "."
 
       - name: Upload Linux Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-portable-${{ matrix.arch }}
           path: |
@@ -52,58 +170,279 @@ jobs:
   build-windows-portable:
     name: Build Windows Portable
     runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      API_ID: ${{ secrets.API_ID }}
+      API_HASH: ${{ secrets.API_HASH }}
+    defaults:
+      run:
+        shell: cmd
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Prepare directories.
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Get repository name.
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v7
         with:
           submodules: recursive
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: First set up.
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
+          echo "Configurate git for cherry-picks."
+          git config --global user.email "you@example.com"
+          git config --global user.name "Sample"
+
+      # Upstream builds on a Depot runner that ships ATL. On the free
+      # windows-latest image the 14.44 toolset has no ATL, which breakpad needs.
+      - name: Install ATL for MSVC 14.44.
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          $vs = & $vswhere -latest -products * -property installationPath
+          Write-Host "Visual Studio: $vs"
+          foreach ($component in @(
+              'Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL',
+              'Microsoft.VisualStudio.Component.VC.ATL')) {
+            $p = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList `
+              'modify','--installPath',"`"$vs`"",'--add',$component, `
+              '--quiet','--norestart','--nocache'
+            Write-Host "$component -> exit code $($p.ExitCode)"
+          }
+          $atl = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory -Filter '14.44*' |
+            ForEach-Object { Join-Path $_.FullName 'atlmfc\include\atlbase.h' } |
+            Where-Object { Test-Path $_ }
+          if (-not $atl) {
+            Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | ForEach-Object { Write-Host "Toolset: $($_.Name)" }
+            Write-Error "atlbase.h not found for MSVC 14.44 after installing ATL."
+            exit 1
+          }
+          Write-Host "ATL found: $atl"
+
+      - uses: Eden-CI/msvc-dev-cmd@master
+        name: Native Tools Command Prompt.
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
+          toolset: '14.44'
+
+      - name: NuGet sources.
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
+      - name: ThirdParty cache.
+        id: cache-third-party
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ runner.arch }}-third-party-
+
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-libs-v2-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-libs-v2-
+
+      - name: Qt cache.
+        id: cache-qt
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-qt-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-qt-
+
+      # Upstream passes "skip-release" here because its CI builds Debug only.
+      # DeGram builds Release, so the release libraries are needed.
+      - name: Libraries.
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent
+
+      - name: Free up some disk space.
+        shell: bash
+        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
+
+      # Saved after the trim above (same contents upstream caches), and before
+      # the compile, so a failed compile doesn't throw away ~1.5h of libraries.
+      - name: Save ThirdParty cache.
+        if: steps.cache-third-party.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ steps.cache-third-party.outputs.cache-primary-key }}
+
+      - name: Save libraries cache.
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
+
+      - name: Save Qt cache.
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ steps.cache-qt.outputs.cache-primary-key }}
+
+      # Release objects plus Release libraries outgrow the free runner's disk
+      # (upstream builds Debug on a larger Depot runner). Drop toolchains the
+      # build never uses; Python, CMake, Git and Visual Studio are kept.
+      - name: Free up more disk space.
+        shell: pwsh
+        run: |
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          $paths = @(
+            'C:\Android',
+            "$env:AGENT_TOOLSDIRECTORY\CodeQL",
+            "$env:AGENT_TOOLSDIRECTORY\Java_Temurin-Hotspot_jdk",
+            "$env:AGENT_TOOLSDIRECTORY\go",
+            "$env:AGENT_TOOLSDIRECTORY\PyPy",
+            "$env:AGENT_TOOLSDIRECTORY\Ruby",
+            'C:\Program Files\Java',
+            'C:\ghcup',
+            'C:\Julia',
+            'C:\Miniconda',
+            'C:\SeleniumWebDrivers',
+            'C:\rtools45'
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              Write-Host "Removing $path"
+              Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+
+          # TBuild (libraries + build output) lives on C:. If D: has more room,
+          # put the compiler output there through a junction.
+          $c = (Get-PSDrive C).Free
+          $d = (Get-PSDrive D -ErrorAction SilentlyContinue).Free
+          if ($d -and $d -gt ($c + 5GB)) {
+            $out = Join-Path $env:TBUILD "$env:REPO_NAME\out"
+            New-Item -ItemType Directory -Force -Path 'D:\degram-out' | Out-Null
+            if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+            New-Item -ItemType Junction -Path $out -Target 'D:\degram-out' | Out-Null
+            Write-Host "Build output redirected to D:\degram-out"
+          } else {
+            Write-Host "Build output stays on C:"
+          }
+
+      # 16 GB of RAM is not enough for a parallel Release compile
+      # (C1060 "compiler is out of heap space", MSBuild OutOfMemory).
+      - name: Configure page file.
+        uses: al-cheb/configure-pagefile-action@v1.4
+        with:
+          minimum-size: 16GB
+          maximum-size: 32GB
+          disk-root: "D:"
+
+      - name: Read API credentials.
+        shell: bash
+        run: |
+          if [ -n "$API_ID" ] && [ -n "$API_HASH" ]; then
+            API="-D TDESKTOP_API_ID=$API_ID -D TDESKTOP_API_HASH=$API_HASH"
+          else
+            echo "::warning::API_ID/API_HASH secrets not set, using the test API credentials."
+            API="-D TDESKTOP_API_TEST=ON"
+          fi
+          echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
+
+      - name: DeGram build.
+        run: |
+          cd %TBUILD%\%REPO_NAME%\Telegram
+
+          call configure.bat ^
+          x64 ^
+          %TDESKTOP_BUILD_API% ^
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+          if errorlevel 1 exit /b 1
+
+          cmake --build ..\out --config Release --parallel 2
+
+      - name: Disk usage on failure.
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-PSDrive C, D | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          foreach ($dir in @("$env:TBUILD\Libraries", "$env:TBUILD\ThirdParty", "$env:TBUILD\$env:REPO_NAME\out", 'D:\degram-out')) {
+            if (Test-Path $dir) {
+              $gb = (Get-ChildItem $dir -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1GB
+              Write-Host ("{0}: {1:N1} GB" -f $dir, $gb)
+            }
+          }
 
       - name: Create Windows Portable Package
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}".TrimStart('v')
-          if ([string]::IsNullOrEmpty($ver)) { $ver = "7.0.17" }
-          ./scripts/build_portable_windows.ps1 -Version $ver -OutputDir "."
+          $repo = Join-Path $env:TBUILD $env:REPO_NAME
+          $exe = Join-Path $repo "out\Release\DeGram.exe"
+          if (-not (Test-Path $exe)) { throw "Build error, $exe does not exist." }
+          & (Join-Path $repo "scripts\build_portable_windows.ps1") -BinaryPath $exe -OutputDir $env:GITHUB_WORKSPACE
 
       - name: Upload Windows Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-portable
           path: |
             DeGram-Portable-*.zip
             DeGram-Portable-*.zip.sha256
 
-  build-macos-portable:
-    name: Build macOS Portable
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Create macOS Portable Package
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          [ -z "$VERSION" ] && VERSION="7.0.17"
-          chmod +x scripts/build_portable_macos.sh
-          ./scripts/build_portable_macos.sh "$VERSION" "out/Release/DeGram.app" "."
-
-      - name: Upload macOS Portable Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-portable
-          path: |
-            DeGram-Portable-*.zip
-            DeGram-Portable-*.zip.sha256
-
   publish-release:
     name: Publish Cross-Platform Release
-    needs: [build-linux-portable, build-windows-portable, build-macos-portable]
+    if: github.event_name == 'workflow_dispatch'
+    needs: [build-linux-portable, build-windows-portable]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(awk '/^AppVersionStr /{print $2}' Telegram/build/version)" >> "$GITHUB_OUTPUT"
+
       - name: Download all portable artifacts
         uses: actions/download-artifact@v4
         with:
@@ -114,14 +453,15 @@ jobs:
         run: |
           cd artifacts
           ls -la
-          sha256sum DeGram-Portable-*.tar.xz DeGram-Portable-*.zip > SHA256SUMS.txt || true
+          sha256sum DeGram-Portable-*.tar.xz DeGram-Portable-*.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          name: DeGram Desktop Portable ${{ github.ref_name }}
-          draft: false
+          tag_name: v${{ steps.version.outputs.version }}
+          name: DeGram Desktop Portable v${{ steps.version.outputs.version }}
+          draft: true
           prerelease: false
           generate_release_notes: true
           files: |
