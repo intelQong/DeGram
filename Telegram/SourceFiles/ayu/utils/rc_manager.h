@@ -53,7 +53,7 @@ public:
 	}
 
 	[[nodiscard]] QString donateUsername() const {
-		return QString("@intelQong");
+		return QString("@redditOwner");
 	}
 
 	[[nodiscard]] QString donateAmountUsd() const {

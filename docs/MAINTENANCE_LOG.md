@@ -36,6 +36,12 @@ Not compiled, per AGENTS.md. `scripts/build_portable.sh` was tested manually.
 5. **Translatable strings.** KABOOM and "Kill the App" UI strings are `ayu_Kaboom*` (plus the existing `ayu_KillApp`) keys in `Telegram/Resources/langs/lang.strings`.
 6. **CI compiles.** `.github/workflows/release.yml` builds Release on Linux (x86_64, upstream Docker `centos_env`), Windows x64, ported from upstream tdesktop v7.0.9 workflows, then packages. Manual trigger only, draft release, `DESKTOP_APP_DISABLE_AUTOUPDATE=ON` and `DESKTOP_APP_DISABLE_CRASH_REPORTS=ON`. Needs repo secrets `API_ID` and `API_HASH` (falls back to test credentials, not releasable). Details: [CI.md](CI.md).
 
+## 2026-10-07: Donations
+
+- The in-app Support section listed AyuGram's developer's addresses (Boosty, TON, BTC, ETH, SOL, Tron) and promised AyuGram supporter badges. It now shows only DeGram's Bitcoin address `bc1qdf4rjhzrz3eezcm5dmf7w6tp369thk2xdskdjq` (`ayu/ui/settings/settings_other.cpp`). The badge note and unused donate icons were removed.
+- The donate contact is now `@redditOwner` (`ayu/utils/rc_manager.h`, `donateUsername()`).
+- README has a Support section.
+
 ## Open issues / next steps
 
 - Fixed by CI: `Resources/qrc/ayu/ayu.qrc` still listed the 11 app icons deleted in "remove all app icons except default blue", which broke the Linux compile; stale entries removed and `appIcon` from old settings now falls back to `default`.

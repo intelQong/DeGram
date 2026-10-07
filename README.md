@@ -111,6 +111,16 @@ cd Telegram/build && python3 set_version.py 7.0.23
 
 Read [AGENTS.md](AGENTS.md) (coding conventions) and [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) (fork-specific map). The [maintenance log](docs/MAINTENANCE_LOG.md) records past cleanup passes and open issues.
 
+## Support
+
+If DeGram is useful to you, you can support development with Bitcoin:
+
+```
+bc1qdf4rjhzrz3eezcm5dmf7w6tp369thk2xdskdjq
+```
+
+Contact: [@redditOwner](https://t.me/redditOwner) on Telegram. The same address is in the app under Settings → DeGram Preferences → Other → Support.
+
 ## License & credits
 
 GPL-3.0 with the OpenSSL exception. See [LICENSE](LICENSE) and [LICENSE.EXCEPTION](LICENSE.EXCEPTION).
