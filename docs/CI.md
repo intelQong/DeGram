@@ -22,6 +22,8 @@ Build logic is ported from upstream tdesktop v7.0.9 (`.github/workflows/linux.ym
 
 Repository secrets `API_ID` and `API_HASH` (see [api_credentials.md](api_credentials.md)). If either is missing the builds log a warning and use the test credentials (`-D TDESKTOP_API_TEST=ON`, as upstream CI does). Packages built that way are not suitable for release.
 
+**Decision (2026-10-07):** DeGram release builds use the official Telegram Desktop credentials, like AyuGram, Telegraher (Android keys) and other forks, so logins are treated like the official client. They are set only as repository secrets, never committed. This goes against Telegram's API terms, which ask each app to use its own ID: Telegram can restrict accounts that use them. To switch to DeGram's own keys, replace the two secrets with values from https://my.telegram.org.
+
 ## Status and limits
 
 - **Verified:** first fully green run on 2026-10-06 (run 16, commit `a697d88`): Linux package ~102 MB, Windows package ~76 MB. Without `API_ID`/`API_HASH` secrets the builds use test credentials and are not releasable.
